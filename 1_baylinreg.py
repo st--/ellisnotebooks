@@ -19,7 +19,7 @@ app = marimo.App(width="medium")
 
 app._unparsable_cell(
     r"""
-    import numpy as np~
+    import numpy as np
     from drawdata import ScatterWidget
     """,
     name="_"
