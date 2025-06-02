@@ -60,6 +60,9 @@ def _(np):
         dists = np.abs(np.subtract.outer(x1, x2))
         return variance * np.exp(-2 * (np.sin(np.pi * dists / period)**2) / lengthscale**2)
 
+    def product_of_gaussian_and_linear_kernel(x1, x2, lengthscale=1):
+        return gaussian_kernel(x1, x2, lengthscale=lengthscale) * linear_kernel(x1, x2)
+    
     def sum_of_periodic_and_linear_kernel(x1, x2):
         return periodic_kernel(x1, x2) + linear_kernel(x1, x2)
     return (
@@ -68,6 +71,7 @@ def _(np):
         matern12,
         periodic_kernel,
         polynomial_kernel,
+        product_of_gaussian_and_linear_kernel,
         sum_of_periodic_and_linear_kernel,
     )
 
@@ -167,7 +171,19 @@ def _(mo):
         r"""
         # Gaussian process posterior
 
-        Now that we've got some feeling for the *prior*, let's see how conditioning on the observed data points gives us the posterior:
+        Now that we've got some feeling for the *prior*, let's see how conditioning on the observed data points gives us the posterior.
+        """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+        ## Data
+
+        First, let's pick some data.
         """
     )
     return
@@ -175,8 +191,8 @@ def _(mo):
 
 @app.cell
 def _():
-    # use_preset_data = True
-    use_preset_data = False  # draw your own data!
+    use_preset_data = True  # just use a predefined set of data
+    # use_preset_data = False  # draw your own data!
     return (use_preset_data,)
 
 
@@ -263,8 +279,8 @@ def draw_data_widget(mo, use_preset_data):
     run_button = mo.ui.run_button(label="Process data", kind="success")
 
     mo.vstack([
+        mo.hstack([run_button]),
         datawidget,
-        mo.hstack([run_button])
     ]) if not use_preset_data else None
     return ScatterWidget, datawidget, run_button
 
@@ -301,7 +317,7 @@ def draw_data_extractor(datawidget, mo, np, run_button, use_preset_data):
         mo.stop(
             not run_button.value,  # if button hasn't been clicked yet
             mo.md(""" /// tip 
-            click 'Process data' to execute the data-dependent code
+            click the 'Process data' button to execute the drawdata-dependent code
             """)
         )
     return extract_X_y, has_data, raw_X, raw_y, warn_no_data
@@ -321,7 +337,7 @@ def data_setup(nlX, nlY, plt, raw_X, raw_y, use_preset_data):
 
     # What happens if you don't normalize the data?
     normalize_data = True
-    # normalize_data = False
+    # normalize_data = False  # 🔧
 
     if normalize_data:
         X = z_normalize(X)
@@ -329,7 +345,7 @@ def data_setup(nlX, nlY, plt, raw_X, raw_y, use_preset_data):
 
     def _get_lims(arr):
         _range = arr.max() - arr.min()
-        return (arr.min() - 0.1*_range, arr.max() + 0.1*_range)
+        return (arr.min() - 0.3*_range, arr.max() + 0.3*_range)
 
     x_lims = _get_lims(X)
     y_lims = _get_lims(y)
@@ -348,6 +364,18 @@ def data_setup(nlX, nlY, plt, raw_X, raw_y, use_preset_data):
 
     plot_data()
     return X, n_data, normalize_data, plot_data, x_lims, y, y_lims, z_normalize
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+        ## Posterior computation
+
+        Similar to how conditioning a multivariate normal distribution results in another (smaller) multivariate normal distribution, conditioning a Gaussian process on some observations results in another Gaussian process. The key difference is that instead of blocks of a finite-size covariance matrix, we now evaluate the covariance function on the input points corresponding to conditioning set (training data) and evaluation set (test points).
+        """
+    )
+    return
 
 
 @app.cell
@@ -382,15 +410,13 @@ def _(X, gaussian_kernel, gp_posterior, np, plot_data, plt, x_lims, y):
 
 
     # Plot
-    plt.figure(figsize=(10, 5))
     plot_data()
     xtest = np.linspace(*x_lims, 200)
-    # plot_posterior(gaussian_kernel, 
     plot_posterior(
         X.squeeze(axis=1), y, xtest,
-        gaussian_kernel,
-        noise_std=1, lengthscale=1,  # underfitting?
-        # noise_std=0.1, lengthscale=0.1,  # overfitting?
+        gaussian_kernel,  # 🔧
+        noise_std=1, lengthscale=1,  # 🔧 underfitting?
+        # noise_std=0.1, lengthscale=0.1,  # 🔧 overfitting?
     )
     plt.legend()
     plt.show()

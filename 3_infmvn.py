@@ -50,7 +50,7 @@ def _(mo):
 def _(np, plt, stats):
     ylims = (-5, 5)
 
-    prior_std = 1.5
+    prior_std = 1.5  # 🔧
     prior_dist = stats.norm(0, prior_std)
 
     x1 = -2
@@ -62,7 +62,7 @@ def _(np, plt, stats):
         ax.set_xlim(-5,7)
         ax.set_ylim(*ylims)
         return fig, ax
-    
+
     def _():
         fig, ax = prep_figure()
 
@@ -76,7 +76,7 @@ def _(np, plt, stats):
             ax.fill_betweenx(y_grid, x + np.zeros_like(p), x + p, color='blue', alpha=0.25)
 
         ax.vlines(x1, *ylims, 'g')
-        # plot_pdf(x1, prior_dist, 'g')  # 🔧 What is the prior distribution of f(x1)?
+        # plot_pdf(x1, prior_dist, 'g')  #56 What is the prior distribution of f(x1)?
         # plot_pdf(x2, prior_dist, 'r')  # 🔧 What is the prior distribution of f(x2)?
         # plot_pdf(-4, prior_dist)
         # plot_pdf(2, prior_dist)
@@ -119,149 +119,16 @@ def _(np, prep_figure, prior_std, stats, x1, x2, ylims):
         ax.plot([x1], [yobs], 'go', markersize=10)
         y1_obs_dist = stats.norm(yobs, noise_std)
         plot_pdf(x1, y1_obs_dist, 'g')
-    
+
         ax.vlines(x2, *ylims, 'r')
         plot_pdf(x2, conditional_dist(y1_obs_dist, rho=1.0), 'r')
         # plot_pdf(x2, conditional_dist(y1_obs_dist, rho=0.0), 'r')
-        # plot_pdf(x2, conditional_dist(y1_obs_dist, rho=0.5), 'r')
+        # plot_pdf(x2, conditional_dist(y1_obs_dist, rho=0.8), 'r')
 
         return fig
 
     _()
     return conditional_dist, noise_std, yobs
-
-
-@app.cell
-def _(elements, elements_case, np, plt, stats, ylims):
-    def cleanlist(elements):
-        for i in range(0,len(elements)):
-            if type(elements[i]) == list:
-                elements[i] = elements[i][0]
-        return elements
-    def removeelements(elements,l):
-        elements = cleanlist(elements)
-        for i in l:
-            elements[i].remove()
-        return elements
-
-    #case = 17
-
-    def draw(case):
-        fig = plt.figure(figsize=(10,5))
-        ax = fig.add_subplot(111)
-        ax.set_xlim(-5,7)
-        ax.set_ylim(-5,5)
-
-        x1 = 3
-        x2 = -2
-        x3 = 6
-        y3 = 0
-        y1 = 0
-        y2 = 2
-        y_samp = np.linspace(-5,5,400)
-        prior_std = 1.5
-        noise_std = 0.1
-        p = stats.norm.pdf(y_samp,y1,prior_std)
-        p_noise = stats.norm.pdf(y_samp,y2,noise_std)
-        y_grid = np.linspace(*ylims, 200)
-
-        def plot_pdf(x, dist, color='b', showline=True):
-            p = dist.pdf(y_grid)
-            if showline:
-                ax.vlines(x, *ylims, color)
-                ax.plot(x + p, y_grid, 'blue')
-            ax.fill_betweenx(y_grid, x + np.zeros_like(p), x + p, color='blue', alpha=0.25)
-
-        ax.vlines([x1,x1],[-5,5],'r')
-        ax.vlines([x2,x2],[-5,5],'g')
-
-        if (case > 6):
-            elements_case.append(len(elements))
-            l = [-1,-2,-4,-5]
-            # elements = removeelements(elements,l)
-            elements.append(ax.scatter(x2,y2,s=200,color='green',zorder=20))
-        if (case > 7):
-            elements_case.append(len(elements))
-            elements.append(ax.plot(x2+p_noise,y_samp,'g'))
-            elements.append(ax.fill_betweenx(y_samp,x2*np.ones(y_samp.shape),x2+p_noise,color='green',alpha=0.25))
-        if (case > 8 and case < 15):
-            elements_case.append(len(elements))
-            elements.append(ax.plot(x1+p,y_samp,'r'))
-            elements.append(ax.fill_betweenx(y_samp,x1*np.ones(y_samp.shape),x1+p,color='red',alpha=0.25))
-        if (case > 9 and case < 15):
-            elements_case.append(len(elements))
-            elements.append(ax.plot(x1+p_noise,y_samp,'r'))
-            elements.append(ax.fill_betweenx(y_samp,x1*np.ones(y_samp.shape),x1+p_noise,color='red',alpha=0.25))
-        if (case > 10 and case < 15):
-            elements_case.append(len(elements))
-            nr_distr = 10;
-            dy = (y2-y1)/nr_distr
-            dstd = (noise_std-prior_std)/nr_distr
-            yc = y2-dy
-            stdc = noise_std-dstd
-            for i in range(0,nr_distr-2):
-                pc = stats.norm.pdf(y_samp,yc,stdc)
-                elements.append(ax.plot(x1+pc,y_samp,color='red'))
-                elements.append(ax.fill_betweenx(y_samp,x1*np.ones(y_samp.shape),x1+pc,color='red',alpha=0.25))      
-                yc -= dy
-                stdc -= dstd
-        if (case > 11 and case < 15):
-            elements_case.append(len(elements))
-            elements = removeelements(elements,np.arange(elements_case[-1]-elements_case[-2])+elements_case[-2])
-            nr_lines = 7
-            ys = np.sqrt(noise_std)*np.random.randn(nr_lines)+y2
-            for i in range(0,nr_lines):
-                elements.append(ax.scatter(x1,ys[i],s=100,color='red',zorder=20))
-                elements.append(ax.plot([x2,x1],[y2,ys[i]],color='red',alpha=0.5))
-        if (case > 12 and case < 15):
-            elements_case.append(len(elements))
-            nr_lines = 7
-            ys = np.sqrt(prior_std)*np.random.randn(nr_lines)+0
-            for i in range(0,nr_lines):
-                elements.append(ax.scatter(x1,ys[i],s=100,color='blue',zorder=20))
-                elements.append(ax.plot([x2,x1],[y2,ys[i]],color='blue',alpha=0.5))
-        if (case > 13 and case < 15):
-            elements_case.append(len(elements))
-            elements.append(ax.scatter(x1,5,s=100,color='black',zorder=20))
-            elements.append(ax.plot([x2,x1],[y2,5],color='black',alpha=1.0))
-            #smooth
-        if (case==15):
-            elements.append(ax.plot([x3,x3],[-5,5],'b'))
-            elements.append(ax.plot(x3+p,y_samp,'b'))
-            elements.append(ax.fill_betweenx(y_samp,x3*np.ones(y_samp.shape),x3+p,color='blue',alpha=0.25))
-            pc = stats.norm.pdf(y_samp,1.0,0.7)
-            elements.append(ax.plot(x1+pc,y_samp,'r'))
-            elements.append(ax.fill_betweenx(y_samp,x1*np.ones(y_samp.shape),x1+pc,color='red',alpha=0.25))
-        if (case==16):
-            #samples from smooth covariance
-            print('apa')
-            #periodic
-        if (case == 17):
-            elements.append(ax.plot([x3,x3],[-5,5],'b'))
-            elements.append(ax.plot(x3+p_noise,y_samp,'b'))
-            elements.append(ax.fill_betweenx(y_samp,x3*np.ones(y_samp.shape),x3+p_noise,color='blue',alpha=0.25))
-            pc = stats.norm.pdf(y_samp,1.0,0.7)
-            elements.append(ax.plot(x1+pc,y_samp,'r'))
-            elements.append(ax.fill_betweenx(y_samp,x1*np.ones(y_samp.shape),x1+pc,color='red',alpha=0.25))
-            ax.set_xlim([-5,10.5])
-
-        if (case == 18):
-            #samples from periodic covariance
-            print('kuk')
-            # save image
-        plt.tight_layout()
-        return fig
-
-
-    figures = []
-    for case in range(7, 18):
-        figures.append(
-            draw(case)
-        )
-
-    figures
-
-    return case, cleanlist, draw, figures, removeelements
 
 
 @app.cell(hide_code=True)
