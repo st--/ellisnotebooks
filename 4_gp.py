@@ -28,6 +28,158 @@ def _():
     return np, plt, stats
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        # Kernel functions and Gaussian process prior
+
+        The **kernel function** $k(x, x')$ defines the core characteristics of a Gaussian process, e.g. differentiability
+        """
+    )
+    return
+
+
+@app.cell
+def _(np):
+    def gaussian_kernel(x1, x2, lengthscale=1.0, variance=1.0):
+        sqdist = np.subtract.outer(x1, x2)**2
+        return variance * np.exp(-0.5 * sqdist / lengthscale**2)
+
+    def matern12(x1, x2, lengthscale=1.0, variance=1.0):
+        absdist = np.abs(np.subtract.outer(x1, x2))
+        return variance * np.exp(-0.5 * absdist / lengthscale)
+
+    def linear_kernel(x1, x2, c=0.0, variance=1.0):
+        return variance * (np.outer(x1, x2) + c)
+
+    def polynomial_kernel(x1, x2, c=1.0, degree=3, variance=1.0):
+        return variance * (np.outer(x1, x2) + c) ** degree
+
+    def periodic_kernel(x1, x2, lengthscale=1.0, period=2.0, variance=1.0):
+        dists = np.abs(np.subtract.outer(x1, x2))
+        return variance * np.exp(-2 * (np.sin(np.pi * dists / period)**2) / lengthscale**2)
+
+    def sum_of_periodic_and_linear_kernel(x1, x2):
+        return periodic_kernel(x1, x2) + linear_kernel(x1, x2)
+    return (
+        gaussian_kernel,
+        linear_kernel,
+        matern12,
+        periodic_kernel,
+        polynomial_kernel,
+        sum_of_periodic_and_linear_kernel,
+    )
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""## Gaussian process prior samples""")
+    return
+
+
+@app.cell
+def _(np, plt, stats):
+    def sample_gp(x, kernel_func, n_samples=3, **kernel_params):
+        K = kernel_func(x, x, **kernel_params)
+
+        mean = np.zeros_like(x)  # we could also use a non-zero mean function
+        cov = K + 1e-6*np.eye(len(x))  # we add a small value on the diagonal to ensure positive-definiteness
+
+        samples = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=n_samples)
+        return samples, K
+
+    def plot_samples(kernel_func, n_samples=5, **kernel_params):
+        """ visualizes samples from the Gaussian process prior defined by `kernel_func` with its `kernel_params` """
+        x = np.linspace(-5, 5, 300)
+        samples, _ = sample_gp(x, kernel_func, n_samples, **kernel_params)
+    
+        fig = plt.figure(figsize=(10, 4))
+        for i in range(samples.shape[0]):
+            plt.plot(x, samples[i], label=f'Sample {i+1}')
+
+        kernel_name = kernel_func.__name__.replace('_', ' ').title()
+        extra = ", ".join(f"{k}={v}" for (k, v) in kernel_params.items())
+        if extra != "": extra = ", "+extra
+        plt.title(f"Samples from Gaussian process prior with {kernel_name}" + extra)
+        plt.xlim(x.min(), x.max())
+        plt.xlabel("x")
+        plt.ylabel("f(x)")
+        plt.legend(loc='upper left')
+        return fig
+    return plot_samples, sample_gp
+
+
+@app.cell
+def _(
+    gaussian_kernel,
+    linear_kernel,
+    matern12,
+    periodic_kernel,
+    plot_samples,
+    sum_of_periodic_and_linear_kernel,
+):
+    [
+        plot_samples(k)
+        for k in [gaussian_kernel, matern12, linear_kernel, periodic_kernel, sum_of_periodic_and_linear_kernel]
+    ]
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+        ## Kernel hyperparameters
+        Kernels commonly have **hyperparameters** that change their properties. For example, the Gaussian kernel has a `lengthscale` hyperparameter that controls the distance over which function values remain correlated with each other:
+        """
+    )
+    return
+
+
+@app.cell
+def _(gaussian_kernel, plot_samples):
+    [
+        plot_samples(gaussian_kernel, lengthscale=l)
+        for l in [0.3, 1, 3]
+    ]
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""The Gaussian kernel also has a `variance` hyperparameter:""")
+    return
+
+
+@app.cell
+def _(gaussian_kernel, plot_samples):
+    [
+        plot_samples(gaussian_kernel, variance=v)
+        for v in [0.1, 1, 5]
+    ]
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+        # Gaussian process posterior
+
+        Now that we've got some feeling for the *prior*, let's see how conditioning on the observed data points gives us the posterior:
+        """
+    )
+    return
+
+
+@app.cell
+def _():
+    # use_preset_data = True
+    use_preset_data = False  # draw your own data!
+    return (use_preset_data,)
+
+
 @app.cell(hide_code=True)
 def preset_non_linear_data(np):
     nlX = np.array([
@@ -90,7 +242,7 @@ def preset_non_linear_data(np):
 
 
 @app.cell(hide_code=True)
-def draw_data_widget(mo):
+def draw_data_widget(mo, use_preset_data):
     from drawdata import ScatterWidget
 
     datawidget = ScatterWidget()
@@ -113,66 +265,64 @@ def draw_data_widget(mo):
     mo.vstack([
         datawidget,
         mo.hstack([run_button])
-    ])
+    ]) if not use_preset_data else None
     return ScatterWidget, datawidget, run_button
 
 
-@app.cell
-def draw_data_extractor(datawidget, mo, np, run_button):
-    has_data = False
-
-    def extract_X_y(data):
-        if len(data[0]) == 0:
-            return np.zeros((0, 1)), np.zeros((0,))
-        if data[0].shape[1] == 1:  # data[0] is X [N,1] and data[1] is y [N]
-            raw_X, raw_y = data
-        else:  # data[0] is x and y stacked into [N,2], data[1] is label that we ignore
-            xy, _ = data
-            raw_X = xy[:, :1]
-            raw_y = xy[:, 1]
-        return raw_X, raw_y
-
-    raw_X, raw_y = extract_X_y(datawidget.data_as_X_y)
-    has_data = len(raw_X) >= 1
-
-    def warn_no_data():
-        warning_msg = mo.md(""" /// warning
-    Need more data, please draw at least one point in the scatter widget
-    """)
-        mo.stop(not has_data, warning_msg)
-
-    warn_no_data()
-
-    mo.stop(
-        not run_button.value,  # if button hasn't been clicked yet
-        mo.md(""" /// tip 
-        click 'Process data' to execute the data-dependent code
+@app.cell(hide_code=True)
+def draw_data_extractor(datawidget, mo, np, run_button, use_preset_data):
+    if use_preset_data:
+        raw_X = raw_y = None
+    else:
+        has_data = False
+    
+        def extract_X_y(data):
+            if len(data[0]) == 0:
+                return np.zeros((0, 1)), np.zeros((0,))
+            if data[0].shape[1] == 1:  # data[0] is X [N,1] and data[1] is y [N]
+                raw_X, raw_y = data
+            else:  # data[0] is x and y stacked into [N,2], data[1] is label that we ignore
+                xy, _ = data
+                raw_X = xy[:, :1]
+                raw_y = xy[:, 1]
+            return raw_X, raw_y
+    
+        raw_X, raw_y = extract_X_y(datawidget.data_as_X_y)
+        has_data = len(raw_X) >= 1
+    
+        def warn_no_data():
+            warning_msg = mo.md(""" /// warning
+        Need more data, please draw at least one point in the scatter widget
         """)
-    )
+            mo.stop(not has_data, warning_msg)
+    
+        warn_no_data()
+    
+        mo.stop(
+            not run_button.value,  # if button hasn't been clicked yet
+            mo.md(""" /// tip 
+            click 'Process data' to execute the data-dependent code
+            """)
+        )
     return extract_X_y, has_data, raw_X, raw_y, warn_no_data
 
 
 @app.cell
-def _(raw_X):
-    raw_X.max()
-    return
-
-
-@app.cell
-def data_setup(nlX, nlY, plt):
-    ### use pre-determined nonlinear data set
-    X, y = nlX[:, None], nlY
-
-    ### use data from the drawdata ScatterWidget above
-    # X, y = raw_X, raw_y
+def data_setup(nlX, nlY, plt, raw_X, raw_y, use_preset_data):
+    if use_preset_data:
+        # use pre-determined nonlinear data set
+        X, y = nlX[:, None], nlY
+    else:
+        # use data from the drawdata ScatterWidget below
+        X, y = raw_X, raw_y
 
     def z_normalize(arr):
         return (arr - arr.mean()) / arr.std()
 
     # What happens if you don't normalize the data?
     normalize_data = True
-    normalize_data = False
-    
+    # normalize_data = False
+
     if normalize_data:
         X = z_normalize(X)
         y = z_normalize(y)
@@ -188,68 +338,16 @@ def data_setup(nlX, nlY, plt):
     assert X.shape == (n_data, 1)
     assert y.shape == (n_data,)
 
-    plt.figure()
-    plt.title("Data")
-    plt.scatter(X, y)
-    plt.xlim(*x_lims)
-    plt.ylim(*y_lims)
-    plt.gcf()
-    return X, n_data, normalize_data, x_lims, y, y_lims, z_normalize
-
-
-@app.cell
-def _(np):
-
-    def gaussian_kernel(x1, x2, lengthscale=1.0, variance=1.0):
-        sqdist = np.subtract.outer(x1, x2)**2
-        return variance * np.exp(-0.5 * sqdist / lengthscale**2)
-
-    def linear_kernel(x1, x2, c=0.0, variance=1.0):
-        return variance * (np.outer(x1, x2) + c)
-
-    def polynomial_kernel(x1, x2, c=1.0, degree=3, variance=1.0):
-        return variance * (np.outer(x1, x2) + c) ** degree
-
-    def periodic_kernel(x1, x2, lengthscale=1.0, period=2.0, variance=1.0):
-        dists = np.abs(np.subtract.outer(x1, x2))
-        return variance * np.exp(-2 * (np.sin(np.pi * dists / period)**2) / lengthscale**2)
-
-    def sum_of_periodic_and_linear_kernel(x1, x2):
-        return periodic_kernel(x1, x2) + linear_kernel(x1, x2)
-    return (
-        gaussian_kernel,
-        linear_kernel,
-        periodic_kernel,
-        polynomial_kernel,
-        sum_of_periodic_and_linear_kernel,
-    )
-
-
-@app.cell
-def _(np, periodic_kernel, plt, stats):
-    def sample_gp(x, kernel_func, n_samples=3, **kernel_params):
-        K = kernel_func(x, x, **kernel_params)
-    
-        samples = stats.multivariate_normal.rvs(mean=np.zeros(len(x)), cov=K + 1e-6*np.eye(len(x)), size=n_samples)
-        return samples, K
-
-    def plot_samples(kernel_func, n_samples=5
-                     , **kernel_params):
-        x = np.linspace(-5, 5, 300)
-        samples, _ = sample_gp(x, kernel_func, n_samples, **kernel_params)
-    
-        fig = plt.figure(figsize=(10, 4))
-        for i in range(samples.shape[0]):
-            plt.plot(x, samples[i], label=f'Sample {i+1}')
-        plt.title(f"Samples from Gaussian process prior with {kernel_func.__name__.replace('_', ' ').title()}")
-        plt.xlim(x.min(), x.max())
-        plt.xlabel("x")
-        plt.ylabel("f(x)")
-        plt.legend(loc='upper left')
+    def plot_data():
+        fig = plt.figure()
+        plt.title("Data")
+        plt.scatter(X, y)
+        plt.xlim(*x_lims)
+        plt.ylim(*y_lims)
         return fig
 
-    plot_samples(periodic_kernel)
-    return plot_samples, sample_gp
+    plot_data()
+    return X, n_data, normalize_data, plot_data, x_lims, y, y_lims, z_normalize
 
 
 @app.cell
@@ -260,7 +358,8 @@ def _(np):
         K_ss = kernel_func(x_test, x_test, **kernel_params) + 1e-8 * np.eye(len(x_test))
 
         K_inv = np.linalg.inv(K)
-    
+
+        # this is effectively the same as for the multivariate normal distributions
         mean_s = K_s.T @ K_inv @ y_train
         cov_s = K_ss - K_s.T @ K_inv @ K_s
         return mean_s, cov_s
@@ -268,76 +367,298 @@ def _(np):
 
 
 @app.cell
-def _(gaussian_kernel, gp_posterior, np, plt):
-    # Example data
-    x_train = np.linspace(-4, 4, 21)
-    y_train = np.sin(x_train) + 0.5*np.random.randn(*x_train.shape)
+def _(X, gaussian_kernel, gp_posterior, np, plot_data, plt, x_lims, y):
+    def plot_posterior(train_x, train_y, x_test, kernel_func, noise_std, **kernel_params):
+        mean_s, cov_s = gp_posterior(train_x, train_y, x_test, kernel_func, noise_std=noise_std, **kernel_params)
+        std_s = np.sqrt(np.diag(cov_s))
+    
+        kernel_name = kernel_func.__name__.replace('_', ' ').title()
+        extra = ", ".join(f"{k}={np.round(v,3)}" for (k, v) in kernel_params.items())
+        if extra != "": extra = ", "+extra
+        plt.title(f"Gaussian process posterior with {kernel_name}" + extra + f", noise std.dev={np.round(noise_std,3)}")
+    
+        plt.plot(x_test, mean_s, 'k', lw=2, label='Mean prediction')
+        plt.fill_between(x_test, mean_s - 2*std_s, mean_s + 2*std_s, color='gray', alpha=0.3, label='+/- 2 std.dev.')
 
-    x_test = np.linspace(-5, 5, 100)
-    mean_s, cov_s = gp_posterior(x_train, y_train, x_test, gaussian_kernel)#, lengthscale=1.0)
 
     # Plot
     plt.figure(figsize=(10, 5))
-    plt.plot(x_train, y_train, 'ro', label='Observations')
-    plt.plot(x_test, mean_s, 'k', lw=2, label='Mean prediction')
-    plt.fill_between(x_test, mean_s - 2*np.sqrt(np.diag(cov_s)), mean_s + 2*np.sqrt(np.diag(cov_s)), color='gray', alpha=0.3)
-    plt.title("GP Posterior with RBF Kernel")
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
+    plot_data()
+    xtest = np.linspace(*x_lims, 200)
+    # plot_posterior(gaussian_kernel, 
+    plot_posterior(
+        X.squeeze(axis=1), y, xtest,
+        gaussian_kernel,
+        noise_std=1, lengthscale=1,  # underfitting?
+        # noise_std=0.1, lengthscale=0.1,  # overfitting?
+    )
     plt.legend()
     plt.show()
 
-    return cov_s, mean_s, x_test, x_train, y_train
+    return plot_posterior, xtest
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        # Hyperparameter selection and marginal likelihood
+
+        To look at how to choose hyperparameter values, we will consider a very small toy dataset. Which of the following two posteriors is better?
+        """
+    )
+    return
+
+
+@app.cell
+def _(gaussian_kernel, mo, np, plot_posterior, plt):
+    # Example data
+    np.random.seed(123)
+    x_train = np.linspace(-4, 4, 21)
+    y_train = np.sin(x_train) + 0.5*np.random.randn(*x_train.shape)
+
+    x_test = np.linspace(-5, 5, 200)
+
+    def plot_toy_data():
+        plt.plot(x_train, y_train, 'ro', label='Observations')
+        plt.xlim(x_test.min(), x_test.max())
+        plt.ylim(-3, 3)
+        plt.xlabel("x")
+        plt.ylabel("f(x)")
+
+    def plot_toy_posterior(kernel_func, **kwargs):
+        fig = plt.figure(figsize=(8, 5))
+        plot_toy_data()
+        plot_posterior(x_train, y_train, x_test, kernel_func, **kwargs)
+        plt.legend()
+        return fig
+
+    mo.hstack([
+        plot_toy_posterior(gaussian_kernel, noise_std=1, lengthscale=1),  # longer lengthscale, higher noise
+        plot_toy_posterior(gaussian_kernel, noise_std=0.1, lengthscale=0.4),  # shorter lengthscale, lower noise
+    ])
+    return plot_toy_data, plot_toy_posterior, x_test, x_train, y_train
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+        How can we pick between them?
+
+        - expert/domain knowledge
+        - cross-validation
+        - put prior distribution on hyperparameters (-> MCMC)
+        - **optimize marginal likelihood**
+        """
+    )
+    return
 
 
 @app.cell
 def _(np):
-    def log_marginal_likelihood(x_train, y_train, kernel_func, noise=1e-2, **kernel_params):
-        K = kernel_func(x_train, x_train, **kernel_params) + noise * np.eye(len(x_train))
-        L = np.linalg.cholesky(K + 1e-6*np.eye(len(K)))
-        alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
-        logdetK = 2 * np.sum(np.log(np.diag(L)))
+    def log_marginal_likelihood(x_train, y_train, kernel_func, noise_std, **kernel_params):
+        K = kernel_func(x_train, x_train, **kernel_params)
+        Sigma = noise_std**2 * np.eye(len(x_train))
+        L = np.linalg.cholesky(K + Sigma + 1e-6*np.eye(len(K)))
+        alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))  # inv(K + Sigma) @ y_train
+        logdetK = 2 * np.sum(np.log(np.diag(L)))  # log |K + Sigma|
         return -0.5 * y_train.T @ alpha - 0.5 * logdetK - 0.5 * len(x_train) * np.log(2*np.pi)
-
     return (log_marginal_likelihood,)
 
 
 @app.cell
-def _(log_marginal_likelihood, np, plt, rbf_kernel, x_train, y_train):
-    def _():
-        # Fixed kernel variance
-        kernel_variance = 1.0
-
+def _(gaussian_kernel, log_marginal_likelihood, mo, np, x_train, y_train):
+    @mo.cache
+    def get_lml_L_N_Z(kernel_variance):
+        """ evaluates log-marginal likelihood on a grid of lengthscales and noise scales """
         # Log-spaced lengthscales and noise variances
-        lengthscales = np.logspace(-1.5, 0.5, 50)  # ~0.1 to 2.0
-        noise_vars = np.logspace(-6, 0.5, 50)   # ~1e-4 to 0.5
+        lengthscales = np.logspace(np.log10(0.01), np.log10(20), 50)
+        noise_stds = np.logspace(np.log10(1e-2), np.log10(2), 50)
 
-        Z = np.zeros((len(lengthscales), len(noise_vars)))
+        Z = np.zeros((len(lengthscales), len(noise_stds)))
         for i, l in enumerate(lengthscales):
-            for j, nv in enumerate(noise_vars):
+            for j, n in enumerate(noise_stds):
                 Z[i, j] = log_marginal_likelihood(
                     x_train, y_train,
-                    rbf_kernel,
-                    noise=nv,
+                    gaussian_kernel,
+                    noise_std=n,
                     lengthscale=l,
                     variance=kernel_variance
                 )
 
-        L, N = np.meshgrid(lengthscales, noise_vars)
+        L, N = np.meshgrid(lengthscales, noise_stds)
+        return L, N, Z.T
+    return (get_lml_L_N_Z,)
 
-        plt.figure(figsize=(8, 6))
-        cp = plt.contour(L, N, Z.T, levels=np.quantile(Z.flatten(), np.linspace(0, 1, 50)), cmap='viridis')
+
+@app.cell
+def _(get_lml_L_N_Z, np, plt):
+    def plot_marginal_likelihood_surface_gaussian_kernel_lengthscale_noise(kernel_variance=1.0):
+        L, N, Z = get_lml_L_N_Z(kernel_variance)
+
+        fig = plt.figure(figsize=(8, 6))
+        cp = plt.contour(L, N, Z, levels=np.quantile(Z.flatten(), np.linspace(0, 1, 30)), cmap='viridis')
         plt.colorbar(cp)
         plt.xscale("log")
         plt.yscale("log")
-        plt.xlabel('Lengthscale (log scale)')
-        plt.ylabel('Noise Variance (log scale)')
-        plt.title('Log Marginal Likelihood (Log-Log Axes, Fixed Kernel Variance)')
-        return plt.show()
+        plt.xlabel('Lengthscale')
+        plt.ylabel('Noise std.dev.')
+        plt.title(f'Log Marginal Likelihood (Kernel variance = {kernel_variance} fixed)')
+        return fig
+
+    plot_marginal_likelihood_surface_gaussian_kernel_lengthscale_noise()
+    plt.show()
+    return (
+        plot_marginal_likelihood_surface_gaussian_kernel_lengthscale_noise,
+    )
 
 
-    _()
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+        ## Numerical optimization of marginal likelihood
 
+        In practice, we would not evaluate the marginal likelihood on a grid, but instead use numeric optimization to find a good point estimate. Let's try that out:
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo, np):
+    def mylogspace(start, stop, n):
+        return np.round(np.logspace(np.log10(start), np.log10(stop), n), 3)
+
+    ui_init_l = mo.ui.slider(steps=mylogspace(0.01, 10, 10), value=1, label="init. lengthscale")
+    ui_init_n = mo.ui.slider(steps=mylogspace(0.01, 10, 10), value=1, label="init. noise std.dev")
+    ui_init_v = mo.ui.slider(steps=mylogspace(0.01, 10, 10), value=1, label="init. kernel variance")
+
+    ui_init_all = mo.hstack([ui_init_l, ui_init_n, ui_init_v])
+    mo.vstack([
+        mo.md("""We have to start optimizing from some initial choice of hyperparameters:"""),
+        ui_init_all
+    ])
+    return mylogspace, ui_init_all, ui_init_l, ui_init_n, ui_init_v
+
+
+@app.cell
+def _(ui_init_l, ui_init_n, ui_init_v):
+    init_noisestd = ui_init_n.value
+    init_variance = ui_init_v.value
+    init_lengthscale = ui_init_l.value
+    return init_lengthscale, init_noisestd, init_variance
+
+
+@app.cell
+def _(
+    gaussian_kernel,
+    init_lengthscale,
+    init_noisestd,
+    init_variance,
+    log_marginal_likelihood,
+    np,
+    x_train,
+    y_train,
+):
+    from scipy.optimize import minimize
+
+    initial_params = [init_lengthscale, init_variance, init_noisestd]  # lengthscale, kernel variance, noise std.dev.
+    initial_log_params = np.log(initial_params)
+
+    def neg_log_marginal_likelihood(log_params, x_train, y_train):
+        log_lengthscale, log_variance, log_noisestd = log_params
+        kernel_func = gaussian_kernel
+        kernel_params = dict(lengthscale=np.exp(log_lengthscale), variance=np.exp(log_variance))
+        noise_std = np.exp(log_noisestd)
+        try:
+            lml = log_marginal_likelihood(x_train, y_train, kernel_func, noise_std=noise_std, **kernel_params)
+        except np.linalg.LinAlgError:
+            lml = -np.inf  # for failed Cholesky
+        return -lml
+
+    # ------------------------------
+    # Optimization
+    # ------------------------------
+    trajectory_log = [initial_log_params.copy()]
+
+    def callback(log_params):
+        trajectory_log.append(log_params.copy())
+
+    res = minimize(
+        fun=neg_log_marginal_likelihood,
+        x0=initial_log_params,
+        args=(x_train, y_train),
+        callback=callback,
+        method='L-BFGS-B'
+    )
+
+    opt_trajectory = np.exp(np.array(trajectory_log))
+    opt_trajectory_lengthscale = opt_trajectory[:, 0]
+    opt_trajectory_variance = opt_trajectory[:, 1]
+    opt_trajectory_noisestd = opt_trajectory[:, 2]
+
+    # ------------------------------
+    # Extract and Print Results
+    # ------------------------------
+    opt_lengthscale, opt_variance, opt_noisestd = np.exp(res.x)
+    print("Optimization success:", res.success)
+    print("Optimized lengthscale:   ", opt_lengthscale)
+    print("Optimized variance:      ", opt_variance)
+    print("Optimized noise variance:", opt_noisestd)
+    print("Final negative log marginal likelihood:", res.fun)
+
+    return (
+        callback,
+        initial_log_params,
+        initial_params,
+        minimize,
+        neg_log_marginal_likelihood,
+        opt_lengthscale,
+        opt_noisestd,
+        opt_trajectory,
+        opt_trajectory_lengthscale,
+        opt_trajectory_noisestd,
+        opt_trajectory_variance,
+        opt_variance,
+        res,
+        trajectory_log,
+    )
+
+
+@app.cell
+def _(
+    gaussian_kernel,
+    init_lengthscale,
+    init_noisestd,
+    mo,
+    opt_lengthscale,
+    opt_noisestd,
+    opt_trajectory_lengthscale,
+    opt_trajectory_noisestd,
+    opt_variance,
+    plot_marginal_likelihood_surface_gaussian_kernel_lengthscale_noise,
+    plot_toy_posterior,
+    plt,
+    ui_init_all,
+):
+    _fig_lml = plot_marginal_likelihood_surface_gaussian_kernel_lengthscale_noise(
+        kernel_variance=1
+        # kernel_variance=np.round(opt_variance, 3)
+    )
+    plt.plot([init_lengthscale], [init_noisestd], 'bo')
+    plt.plot(opt_trajectory_lengthscale, opt_trajectory_noisestd)
+    plt.plot([opt_lengthscale], [opt_noisestd], 'r*', ms=10)
+
+    _fig_pred = plot_toy_posterior(
+        gaussian_kernel,
+        noise_std=opt_noisestd,
+        lengthscale=opt_lengthscale,
+        variance=opt_variance,
+    )
+
+    mo.vstack([ui_init_all, mo.hstack([_fig_lml]), mo.hstack([_fig_pred])])
     return
 
 
