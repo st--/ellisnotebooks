@@ -17,13 +17,11 @@ __generated_with = "0.12.5"
 app = marimo.App(width="medium")
 
 
-app._unparsable_cell(
-    r"""
-    import numpy as np~
+@app.cell
+def _():
+    import numpy as np
     from drawdata import ScatterWidget
-    """,
-    name="_"
-)
+    return ScatterWidget, np
 
 
 @app.cell
@@ -43,9 +41,12 @@ def _(ScatterWidget, mo):
     datawidget = mo.ui.anywidget(datawidget)
 
     # run_button to run model
-    run_button = mo.ui.run_button(label="Run Linear Regression", kind="success")
+    run_button = mo.ui.run_button(label="Run", kind="success")
 
-    mo.vstack([datawidget, mo.hstack([run_button])])
+    mo.vstack([
+        datawidget,
+        mo.hstack([run_button])
+    ])
     return datawidget, run_button
 
 
@@ -85,7 +86,7 @@ def _(datawidget, mo, np, run_button):
 
 
 @app.cell
-def _(raw_X, raw_y):
+def _(plt, raw_X, raw_y):
     # What happens if you don't normalize the data?
     normalize_data = True
 
@@ -98,6 +99,9 @@ def _(raw_X, raw_y):
         y_lims = (-100, 600)
         X = raw_X
         y = raw_y
+
+    plt.title("Data")
+    plt.scatter(X, y)
     return X, normalize_data, x_lims, y, y_lims
 
 
@@ -114,8 +118,8 @@ def _(np):
 
 
 @app.cell
-def _(np, plt):
-    def get_theta_grid_contour_plot(func, label):
+def _(np, plt, stats):
+    def get_theta_grid_contour_plot(func, label, kind=0):
         # Define grid limits and resolution
         theta_min, theta_max = -3, 3
         grid_size = 100
@@ -132,12 +136,24 @@ def _(np, plt):
                 theta = np.array([theta0_mesh[i, j], theta1_mesh[i, j]])
                 grid[i, j] = func(theta)
 
-        def plot():
-            # Plot contour of loss surface
-            contour = plt.contourf(theta0_mesh, theta1_mesh, grid, 50, cmap='viridis')
-            plt.colorbar(contour, label=label)
-            # Add contour lines
-            plt.contour(theta0_mesh, theta1_mesh, grid, 20, colors='white', alpha=0.5, linestyles='solid')
+        if kind == 0:
+            def plot():
+                # Plot contour of loss surface
+                contour = plt.contourf(theta0_mesh, theta1_mesh, grid, 50, cmap='viridis')
+                plt.colorbar(contour, label=label)
+                # Add contour lines
+                plt.contour(theta0_mesh, theta1_mesh, grid, 20, colors='white', alpha=0.5, linestyles='solid')
+
+        elif kind == 1:
+            def plot():
+                levels = []
+                f0 = grid.max()  # approx.
+                for n_std in [3, 2, 1]:
+                    coverage = 2 * stats.norm.cdf(n_std) - 1
+                    D2 = stats.chi2(df=2).ppf(coverage)
+                    levels.append(f0 * np.exp(-0.5*D2))
+                print(levels)
+                plt.contour(theta0_mesh, theta1_mesh, grid, levels, colors='red', linestyles='solid')
 
         return plot
     return (get_theta_grid_contour_plot,)
@@ -166,25 +182,39 @@ def _(plt, rmse_contour_plotter):
 @app.cell
 def _(get_theta_grid_contour_plot, mvn, plt):
     pdf_contour_plotter = get_theta_grid_contour_plot(lambda theta: mvn.pdf(theta), 'pdf')
+    pdf_contour_plotter2 = get_theta_grid_contour_plot(lambda theta: mvn.pdf(theta), 'pdf', kind=1)
 
     def plot_pdf_surface():
         pdf_contour_plotter()
         plt.xlabel('Intercept (θ₀)')
         plt.ylabel('Slope (θ₁)')
-        plt.title('Loss Surface: RMSE as a function of model parameters')
-    return pdf_contour_plotter, plot_pdf_surface
+        plt.title('PDF p(θ₀, θ₁)')
+    return pdf_contour_plotter, pdf_contour_plotter2, plot_pdf_surface
 
 
 @app.cell
-def _(mean_vector, plot_rmse_surface, plt):
+def _(
+    checkbox_draw_dist,
+    mean_vector,
+    pdf_contour_plotter2,
+    plot_rmse_surface,
+    plt,
+):
     plot_rmse_surface()
-    plt.scatter([mean_vector[0]], [mean_vector[1]], color='red', marker='*', ec='white', s=200, zorder=3)
-    return
+    if checkbox_draw_dist.value:
+        pdf_contour_plotter2()
+    else:
+        plt.scatter([mean_vector[0]], [mean_vector[1]], color='red', marker='*', ec='white', s=200, zorder=3)
+    ax_loss = plt.gca()
+    ax_loss
+    return (ax_loss,)
 
 
 @app.cell
 def _(
     X,
+    ax_loss,
+    ax_pdf,
     checkbox_draw_dist,
     cov_matrix,
     mean_vector,
@@ -194,6 +224,7 @@ def _(
     predict_linear,
     slider_intercept_mean,
     slider_slope_mean,
+    sliders_all,
     stats,
     x_lims,
     y,
@@ -217,15 +248,28 @@ def _(
 
     _()
 
-    mo.vstack([mo.hstack([slider_slope_mean, slider_intercept_mean, checkbox_draw_dist]), mo.hstack([plt.gcf()])])
-    return
+    if checkbox_draw_dist.value:
+        sliders = sliders_all
+        plots = mo.hstack([ax_loss, ax_pdf])
+    else:
+        sliders = mo.vstack([slider_intercept_mean, slider_slope_mean])
+        plots = mo.hstack([ax_loss])
+
+    mo.vstack([
+        checkbox_draw_dist,
+        sliders,
+        plots,
+        mo.hstack([plt.gcf()])
+    ])
+    return plots, sliders
 
 
 @app.cell
 def _(plot_pdf_surface, plt):
     plot_pdf_surface()
-    plt.gca()
-    return
+    ax_pdf = plt.gca()
+    ax_pdf
+    return (ax_pdf,)
 
 
 @app.cell
@@ -241,13 +285,14 @@ def _(mo, np):
     slider_intercept_std = mo.ui.slider(steps=np.logspace(-2, 2, 21), label="intercept std", value=1)
     slider_slope_std = mo.ui.slider(steps=np.logspace(-2, 2, 21), label="slope std", value=1)
     slider_correlation = mo.ui.slider(steps=np.round(np.linspace(-1, 1, 21)[1:-1], decimals=3), label="correlation", value=0.2)
-    mo.vstack([slider_intercept_mean, slider_slope_mean, slider_intercept_std, slider_slope_std, slider_correlation])
+    sliders_all = mo.vstack([slider_intercept_mean, slider_slope_mean, slider_intercept_std, slider_slope_std, slider_correlation])
     return (
         slider_correlation,
         slider_intercept_mean,
         slider_intercept_std,
         slider_slope_mean,
         slider_slope_std,
+        sliders_all,
     )
 
 
