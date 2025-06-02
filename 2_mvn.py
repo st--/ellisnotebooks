@@ -13,7 +13,7 @@
 import marimo
 
 __generated_with = "0.12.5"
-app = marimo.App(width="medium", layout_file="layouts/1_mvn.slides.json")
+app = marimo.App(width="medium", layout_file="layouts/2_mvn.slides.json")
 
 
 @app.cell
@@ -32,6 +32,18 @@ def _():
 
 @app.cell
 def _(mo):
+    mo.md(
+        r"""
+        # Multivariate normal distributions
+
+        We want to put a distribution $p(\mathbf{f}) = p(f_1, f_2, ..., f_N)$ on all the function values corresponding to our $N$ observed data points. For that, we will use the simplest multivariate distribution... the multivariate Gaussian distribution. Let's get a bit more familiar with that!
+        """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     _var = "f"
     _var = r"\star"
     # _var = "x"
@@ -42,6 +54,8 @@ def _(mo):
 
         $$ \mathrm{N}(VAR | \mu, \sigma^2) $$
 
+        Fully defined by mean $\mu$ and standard deviation $\sigma$ / variance $\sigma^2$
+    
         $$\mathbb{E}[VAR] = \mu \qquad \mathbb{V}[VAR] = \sigma^2$$
         """.replace("VAR", r"{\color{red} VAR}").replace("VAR", _var)
     )
@@ -65,22 +79,22 @@ def _(mo, np, plt, stats):
     def plot_normal_distribution(mean, std): 
         # Create x values for plotting
         x = np.linspace(-5, 5, 1000)
-    
+
         # Calculate the PDF values
         pdf = stats.norm.pdf(x, loc=mean, scale=std)
-    
+
         # Create the plot
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(x, pdf, 'b-', lw=2, label=f'Normal PDF (μ={mean:.1f}, σ={std:.1f})')
         ax.fill_between(x, pdf, alpha=0.2)
-    
+
         # Add vertical line at mean
         ax.axvline(mean, color='r', linestyle='--', alpha=0.5, label='Mean')
-    
+
         # Add vertical lines at mean ± std
         ax.axvline(mean - std, color='g', linestyle=':', alpha=0.5, label='Mean ± Std Dev')
         ax.axvline(mean + std, color='g', linestyle=':', alpha=0.5)
-    
+
         # Add labels and title
         ax.set_xlim(x.min(), x.max())
         ax.set_xlabel('x')
@@ -88,7 +102,7 @@ def _(mo, np, plt, stats):
         ax.set_title('Normal Distribution PDF')
         ax.legend()
         ax.grid(True, alpha=0.3)
-    
+
         return plt.gca()
     return (plot_normal_distribution,)
 
@@ -195,7 +209,6 @@ def _(cov2d_choice, cov_matrix_diag, cov_matrix_offd):
         cov_matrix = cov_matrix_offd
         cov_ui_eqn = r"""$$\boldsymbol{\Sigma} = \begin{bmatrix} 1 & {\color{red}\rho} \\ {\color{red}\rho} & 1 \end{bmatrix}$$"""
         cov_elem_eqn = r"""$(\boldsymbol{\Sigma})_{ij} = \operatorname{cov}(x_i, x_j) = \mathbb{E}[x_i x_j] - \mu_i \mu_j$"""
-
     return cov_elem_eqn, cov_matrix, cov_ui_eqn
 
 
@@ -212,6 +225,12 @@ def matrix_to_latex():
         ]
         return r"\begin{bmatrix} " + r" \\ ".join(rows) + r" \end{bmatrix}"
     return (matrix_to_latex,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""Let's look at how the values of the covariance matrix affect the distribution:""")
+    return
 
 
 @app.cell(hide_code=True)
@@ -233,9 +252,9 @@ def _(
 
         # Create a markdown object with the multivariate normal distribution formula
         multivariate_normal_latex = rf"""{cov_ui_eqn}
-    
+
         {cov_elem_eqn}
-    
+
         $\boldsymbol{{\mu}} = {mean_vector_latex}$
         $\boldsymbol{{\Sigma}} = {cov_matrix_latex}$"""
         print(cov_matrix)
@@ -253,17 +272,11 @@ def _(
 
 
 @app.cell
-def _(stddevs_to_coverage_1d):
-    stddevs_to_coverage_1d(2)
-    return
-
-
-@app.cell
 def _(np, plt, stats):
     def stddevs_to_coverage_1d(n_std: float) -> float:
         """ Given number of standard deviations (±n), return coverage under 1D Gaussian, e.g. ±n -> 0.9545 """
         return 2 * stats.norm.cdf(n_std) - 1
-    
+
     def coverage_to_level(mvn: stats.multivariate_normal, coverage: float) -> float:
         """ For a given mvn distribution, return the contour level containing the given coverage. """
         D2 = stats.chi2(df=mvn.dim).ppf(coverage)  # squared Mahalanobis radius corresponding to coverage
@@ -272,19 +285,19 @@ def _(np, plt, stats):
     class Gaussian2DPdfPlotter:
         def __init__(self, mvn: stats.multivariate_normal, xmin=-5, xmax=5, step=0.01):
             self.mvn = mvn
-        
+
             # Create a grid of points
             self.X, self.Y = np.mgrid[xmin:xmax:step, xmin:xmax:step]
-        
+
             # Stack the meshgrid points into a 2D array
             pos = np.dstack((self.X, self.Y))
-        
+
             # Calculate the PDF values
             self.pdf = mvn.pdf(pos)
 
         def contourf(self, ax, with_colorbar=None, **kwargs):
             contour = ax.contourf(self.X, self.Y, self.pdf, **kwargs)
-        
+
             if with_colorbar is not None:  # Add a colorbar
                 plt.colorbar(contour, ax=ax, **with_colorbar)
 
@@ -309,7 +322,7 @@ def _(
     def plot_2d_gaussian(cov_matrix, mean=None, stddevs=[1, 2, 3], title="2D Gaussian Distribution"):
         """
         Plot the 2D probability density function of a Gaussian distribution.
-    
+
         Parameters:
         -----------
         cov_matrix : array-like, shape (2, 2)
@@ -318,7 +331,7 @@ def _(
             The mean vector of the Gaussian distribution. Default is [0, 0].
         title : str, optional
             The title of the plot.
-    
+
         Returns:
         --------
         ax : matplotlib.axes.Axes
@@ -328,9 +341,9 @@ def _(
             mean = np.zeros(2)
 
         mvn = stats.multivariate_normal(mean, cov_matrix)
-    
+
         pdf_plotter = Gaussian2DPdfPlotter(mvn)
-    
+
         fig, ax = plt.subplots(figsize=(10, 8))
         pdf_plotter.contourf(ax, cmap='viridis', levels=50, with_colorbar=dict(label='Probability Density'))
         pdf_plotter.contour(ax, colors='white', alpha=0.3, levels=10, linestyles='dashed')
@@ -341,30 +354,44 @@ def _(
             contour_level = coverage_to_level(mvn, coverage)
             levels.append(contour_level)
             ax.plot([], [], 'r--', label=f'{coverage:.2%} (~±{n_std}σ)')
-    
+
         pdf_plotter.contour(ax, levels=levels, linewidths=2, linestyles='dashed', colors='red')
-    
+
         # Set labels and title
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_title(title)
-    
+
         # Add a point for the mean
         ax.scatter(mean[0], mean[1], color='red', marker='x', s=100, label='Mean')
-    
+
         ax.legend()
-    
+
         # Make the plot tight
         plt.tight_layout()
-    
-        return plt.gca()
 
+        return plt.gca()
     return cm, plot_2d_gaussian
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""# Marginalizing: Projection""")
+    mo.md(
+        r"""
+        # Marginalizing: Projection
+
+        Given a joint distribution $p(\mathbf{x}) = p(x_1, x_2)$, a *marginal* distribution is the distribution of a subset of the random variables, which we get by integrating out the others:
+
+        \begin{align}
+        p(x_1) &= \int p(x_1, x_2) \mathrm{d}x_2 \\
+        p(x_2) &= \int p(x_1, x_2) \mathrm{d}x_1
+        \end{align}
+
+        (i.e., "projection onto the margins")
+
+        For a multivariate Gaussian distribution, all marginal distributions are also Gaussian.
+        """
+    )
     return
 
 
@@ -372,16 +399,16 @@ def _(mo):
 def _(Gaussian2DPdfPlotter, coverage_to_level, stddevs_to_coverage_1d):
     def plot_bivariate_gaussian(ax, xvec_dist, xvec_samples, xmin, xmax, *, alpha=0.5, size=1, levels_coverage=True):
         ax.set_xlim(xmin, xmax); ax.set_ylim(xmin, xmax); ax.grid()
-    
+
         pdf_plotter = Gaussian2DPdfPlotter(xvec_dist, xmin=xmin, xmax=xmax)
         levels = (
             [coverage_to_level(xvec_dist, stddevs_to_coverage_1d(n)) for n in [3,2,1]]
             if levels_coverage else None
         )
         pdf_plotter.contour(ax, colors='black', levels=levels)
-    
+
         ax.scatter(xvec_samples[:,0], xvec_samples[:,1], s=size, color='C0', alpha=alpha)
-    
+
         ax.set_xlabel("$x_1$"); ax.set_ylabel("$x_2$")
     return (plot_bivariate_gaussian,)
 
@@ -396,12 +423,12 @@ def _(np, plot_bivariate_gaussian, plt, stats):
 
         N = 1000
         xvec_samples = xvec_dist.rvs(N)  # draw samples
-    
+
         x1_dist = stats.norm(loc=xvec_dist.mean[0], scale=xvec_dist.cov[0,0]**0.5)  # loc=mean, scale=std.dev.=sqrt(var)
         x2_dist = stats.norm(loc=xvec_dist.mean[1], scale=xvec_dist.cov[1,1]**0.5)
 
         xlims = xmin, xmax = (-6, 6)
-    
+
         def plot_marginal_distribution(ax, x_dist, x_samples, xlabel="", orientation='vertical'):
             assert orientation in ('vertical', 'horizontal')
             if orientation == 'vertical':
@@ -415,25 +442,25 @@ def _(np, plot_bivariate_gaussian, plt, stats):
 
             # Create grid for evaluating the PDF
             x_values = np.linspace(*xlims, 200)    
-        
+
             # Exact PDF:
             pdf_values = x_dist.pdf(x_values)
-        
+
             if orientation == 'vertical':
                 _x, _y = x_values, pdf_values
             elif orientation == 'horizontal':
                 _x, _y = pdf_values, x_values
-            
+
             ax.plot(_x, _y, 'k-', linewidth=2, label='exact PDF')
 
             # Empirical histogram:
             ax.hist(x_samples, bins=30, range=xlims, density=True,
                     orientation=orientation, alpha=0.6, color='C0', 
                     label='empirical distribution')
-        
+
             ax.legend(loc='lower left')
             ax.grid()
-    
+
         fig, axes = plt.subplots(2, 2, constrained_layout=True, sharex='col', sharey='row')
         plot_bivariate_gaussian(axes[0, 0], xvec_dist, xvec_samples, xmin, xmax)
         plot_marginal_distribution(axes[1, 0], x1_dist, xvec_samples[:, 0], "$x_1$")
@@ -442,13 +469,19 @@ def _(np, plot_bivariate_gaussian, plt, stats):
 
         return fig
 
-    _() 
+    _()
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(r"""# Marginalizing in higher dimensions""")
+    mo.md(
+        r"""
+        # Marginalizing in higher dimensions
+
+        Let's convince ourselves that this works the same in higher dimensions.
+        """
+    )
     return
 
 
@@ -476,7 +509,7 @@ def _(button_redraw, np, stats):
         df = D + 5  # Using D + some value to ensure positive definiteness  # 🔧
         assert df >= D, "df (degrees of freedom) must be >= D for a valid covariance matrix"
         return stats.wishart.rvs(df=df, scale=scale_matrix)
-    
+
     random_covariance_matrix = random_covariance_from_wishart(D)
 
     ### alternative: compute arbitrary matrix, 'square' it, add small value on diagonal
@@ -551,18 +584,6 @@ def _(mo):
 
 
 @app.cell
-def _(np, stats):
-    xvec_dist = stats.multivariate_normal(
-        mean=np.array([0, 2]),
-        cov=np.array([[1, 0.8],
-                     [0.8, 1]]))
-
-    _num_samples = 1000
-    xvec_samples = xvec_dist.rvs(_num_samples)  # draw samples
-    return xvec_dist, xvec_samples
-
-
-@app.cell
 def _(mo):
     mo.md(
         r"""
@@ -570,7 +591,14 @@ def _(mo):
 
         $$ p(A | B) = \frac{p(A \cap B)}{p(B)} $$
 
+        The conditional distribution of a random variable, given a value of another random variable that is now held constant at that value, corresponds to "filtering" out only that part of the joint distribution. This is effectively Bayes's theorem.
+
+        We can actually do this empirically, by taking samples from A and discarding those that are not in B!
+
+
         ### in Gaussian distribution:
+
+        Here, conditional distributions are again Gaussian as well:
 
         $$
         p(x_1, x_2) = \mathrm{N}\left(\begin{bmatrix}x_1 \\ x_2\end{bmatrix}
@@ -588,19 +616,31 @@ def _(mo):
 
 
 @app.cell
+def _(np, stats):
+    xvec_dist = stats.multivariate_normal(
+        mean=np.array([0, 2]),
+        cov=np.array([[1, 0.8],
+                     [0.8, 1]]))
+
+    _num_samples = 1000
+    xvec_samples = xvec_dist.rvs(_num_samples)  # draw samples
+    return xvec_dist, xvec_samples
+
+
+@app.cell
 def _(np, stats, xvec_dist, xvec_samples):
     def x1_given_x2__samples(x2_condition, tolerance):
         """ empirical conditioning for arbitrary 2D distribution: """
         x1 = xvec_samples[:, 0]
         x2 = xvec_samples[:, 1]
-        mask = np.abs(x2 - x2_condition) < tolerance
+        mask = np.abs(x2 - x2_condition) < tolerance  # because the random variables are continuous, we cannot use exact equality comparison - then there would be zero samples left!
         return x1[mask]
 
     def x1_given_x2__dist(x2_condition):
         """ exact conditioning for 2D Gaussian distribution: """
         mean1, mean2 = xvec_dist.mean
         [[Sigma11, Sigma12], [Sigma21, Sigma22]] = xvec_dist.cov
-    
+
         x1_cond_mean = Sigma12 / Sigma22 * (x2_condition - mean2) + mean1
         x1_cond_var = Sigma11 - Sigma12 / Sigma22 * Sigma21
 
@@ -632,31 +672,31 @@ def _(
     def _():
         x1_cond_samples = x1_given_x2__samples(_x2_condition, tolerance=_tolerance)
         x1_cond_dist = x1_given_x2__dist(_x2_condition)
-    
+
         xmin, xmax = (-6, 6)
 
         def _plot_condition_line(ax):
             ax.axhline(y=_x2_condition, color='r', linestyle='--', alpha=0.5)  # zero-line for histogram/pdf
-    
+
         def _plot_condition_filter(ax):
             ymin = _x2_condition - _tolerance
             ymax = _x2_condition + _tolerance
             ax.fill_between([xmin, xmax], [ymin]*2, [ymax]*2, color='r', alpha=0.1)
-    
+
         def _plot_x1_conditional_distribution_empirical(ax):
             ax.hist(x1_cond_samples, bottom=_x2_condition, bins=40, range=(xmin, xmax), density=True, color='r', alpha=0.3)
-    
+
         def _plot_x1_conditional_distribution_exact(ax):
             _x_grid = np.linspace(xmin, xmax, 100)
             ax.plot(_x_grid, x1_cond_dist.pdf(_x_grid) + _x2_condition, 'r-')
-        
+
         ax = plt.subplot()
         plot_bivariate_gaussian(ax, xvec_dist, xvec_samples, xmin, xmax, alpha=0.5)
         _plot_condition_line(ax)
         _plot_condition_filter(ax)
         _plot_x1_conditional_distribution_empirical(ax)
         # _plot_x1_conditional_distribution_exact(ax)  # 🔧
-    
+
         return plt.gcf()
 
     _()
@@ -679,7 +719,13 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""# Visualizing samples in higher dimensions""")
+    mo.md(
+        r"""
+        # Visualizing samples in higher dimensions
+
+        So far, we looked at only bivariate (2D) Gaussian distributions, because then we can plot the full probability distribution. However, in the end we want to put a distribution over many points. We will no longer be able to plot the full $N$-dimensional pdf, but we can consider a different way of visualizing samples from high-dimensional distributions:
+        """
+    )
     return
 
 
@@ -710,14 +756,14 @@ def _(matrix_to_latex, mo, np, plot_bivariate_gaussian, plt, stats):
         ax = plt.subplot(1, 2, 1)
         plot_bivariate_gaussian(ax, _xv_dist, np.zeros((0,2)), -3, 3, levels_coverage=False)
         ax.plot(_points[None, :, 0], _points[None, :, 1], 'o')
-    
+
         ax2 = plt.subplot(1, 2, 2, sharey=ax)
         indices = [1, 2]
         ax2.set_xlabel("index $i$")
         ax2.set_xticks(indices)
         ax2.plot(indices, _points.T, 'o-')
         ax2.set_ylabel("$x_i$")
-    
+
         plt.tight_layout()
         return ax
 
@@ -840,11 +886,13 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(mo):
     mo.md(
         r"""
         # Conditioning in higher dimensions
+
+        We can exactly condition a multivariate Gaussian distribution even in higher dimensions, the equation looks almost the same as in the bivariate case:
     
         $$
         p(x_1, x_2) = \mathrm{N}\left(\begin{bmatrix}x_1 \\ x_2\end{bmatrix}
@@ -880,31 +928,31 @@ def _(np, stats):
         cov = np.asarray(cov)
         cond_index = np.asarray(cond_index)
         cond_values = np.asarray(cond_values)
-    
+
         # Get the indices of the variables not being conditioned on
         n = len(mean)
         uncond_index = np.array([i for i in range(n) if i not in cond_index])
-    
+
         # Partition the mean vector
         mean_1 = mean[uncond_index]
         mean_2 = mean[cond_index]
-    
+
         # Partition the covariance matrix
         cov_11 = cov[np.ix_(uncond_index, uncond_index)]
         cov_12 = cov[np.ix_(uncond_index, cond_index)]
         cov_21 = cov[np.ix_(cond_index, uncond_index)]
         cov_22 = cov[np.ix_(cond_index, cond_index)]
-    
+
         # Compute the conditional mean and covariance
         cond_mean = mean_1 + cov_12 @ np.linalg.solve(cov_22, cond_values - mean_2)
         cond_cov = cov_11 - cov_12 @ np.linalg.solve(cov_22, cov_21)
-    
+
         return cond_mean, cond_cov
 
     def sample_conditional_multivariate_normal(mvn, cond_index, cond_values, n_samples=1):
         """
         Generate samples from a conditional multivariate normal distribution.
-    
+
         Parameters:
         -----------
         mean : array-like
@@ -917,7 +965,7 @@ def _(np, stats):
             Values of the variables being conditioned on
         n_samples : int, optional
             Number of samples to generate (default: 1)
-        
+
         Returns:
         --------
         samples : ndarray
@@ -925,29 +973,29 @@ def _(np, stats):
         """
         # Get conditional distribution parameters
         cond_mean, cond_cov = conditional_multivariate_normal(mvn.mean, mvn.cov, cond_index, cond_values)
-    
+
         # Get the indices of the variables not being conditioned on
         n = mvn.dim
         uncond_index = np.array([i for i in range(n) if i not in cond_index])
-    
+
         # Sample from the conditional distribution
         uncond_samples = stats.multivariate_normal.rvs(cond_mean, cond_cov, size=n_samples)
-    
+
         # Ensure uncond_samples is 2D even if n_samples=1
         if n_samples == 1:
             uncond_samples = uncond_samples.reshape(1, -1)
-    
+
         # Create full samples
         full_samples = np.zeros((n_samples, n))
-    
+
         # Fill in the conditioned values
         for i, idx in enumerate(cond_index):
             full_samples[:, idx] = cond_values[i]
-    
+
         # Fill in the unconditioned values
         for i, idx in enumerate(uncond_index):
             full_samples[:, idx] = uncond_samples[:, i]
-    
+
         return full_samples
     return (
         conditional_multivariate_normal,
@@ -968,7 +1016,30 @@ def _(np):
 
 
 @app.cell
-def _(mvn_dist, np, plt, stats):
+def _(mo):
+    mo.md(
+        r"""
+        Let's look at conditioning in higher dimensions.
+
+        - You can uncomment the line that plots the empirical mean and confidence band
+        - Change the points on which you condition
+        - What is the effect of changing mean and/or covariance matrix (cf previous section)?
+
+        As PART 2, you can use a much higher-dimensional distribution - you might want to comment out the empirical conditioning which will work less and less well the more points you condition on.
+        """
+    )
+    return
+
+
+@app.cell
+def _(
+    mv_condition_samples,
+    mvn_dist,
+    np,
+    plt,
+    sample_conditional_multivariate_normal,
+    stats,
+):
     _prior = mvn_dist
 
     # # 🔧 *PART 2*
@@ -983,7 +1054,7 @@ def _(mvn_dist, np, plt, stats):
 
     _conditioning_points = [
         # (index, value) pairs: index must be an integer, value can be a float or integer
-    
+
         (2, 0.0),
         # (3, 0.5),
         # (9, -1),
@@ -1007,20 +1078,16 @@ def _(mvn_dist, np, plt, stats):
     _tolerance = 0.1  # 🔧
 
     _samples_prior = _prior.rvs(_num_samples)
+    _samples_post_empirical = mv_condition_samples(_samples_prior, _cond_index, _cond_values, _tolerance)
+    _samples_post_analytical = sample_conditional_multivariate_normal(_prior, _cond_index, _cond_values, 100)
 
-    _samples = _samples_prior
-
-    # _samples = mv_condition_samples(_samples_prior, _cond_index, _cond_values, _tolerance)  # 🔧
-
-    # _samples = sample_conditional_multivariate_normal(_prior, _cond_index, _cond_values, 100)  # 🔧
-
-    def _rvs_viz():
+    def _rvs_viz(samples):
         fig, ax = plt.subplots()
-    
-        indices = np.arange(_samples.shape[1])
+
+        indices = np.arange(samples.shape[1])
 
         def plot_samples(ax):
-            ax.plot(indices, _samples.T, 'C0-', alpha=0.3)
+            ax.plot(indices, samples.T, 'C0-', alpha=0.3)
 
         def plot_conditioning_points(ax):
             ax.plot(_cond_index, _cond_values, 'ko')
@@ -1030,14 +1097,14 @@ def _(mvn_dist, np, plt, stats):
             mean_minus_n_std_quantile = stats.norm.cdf(-n_std)
             mean_quantile = 0.5
             mean_plus_n_std_quantile = stats.norm.cdf(n_std)
-        
+
             # assuming the samples are actually from a Gaussian distribution, we can get lower-variance estimators through empirical mean and standard deviation:
-            qmean = np.mean(_samples, axis=0)
-            qlo = qmean - n_std * np.std(_samples, axis=0)
-            qhi = qmean + n_std * np.std(_samples, axis=0)
-        
+            qmean = np.mean(samples, axis=0)
+            qlo = qmean - n_std * np.std(samples, axis=0)
+            qhi = qmean + n_std * np.std(samples, axis=0)
+
             # ### alternatively, the following works for _any_ distribution of samples:
-            # qlo, qmean, qhi = np.quantile(_samples, [mean_minus_n_std_quantile, mean_quantile, mean_plus_n_std_quantile], axis=0)
+            # qlo, qmean, qhi = np.quantile(samples, [mean_minus_n_std_quantile, mean_quantile, mean_plus_n_std_quantile], axis=0)
 
             ax.fill_between(indices, qlo, qhi, color='k', alpha=0.1)
             ax.plot(indices, qmean, 'k-')
@@ -1045,16 +1112,20 @@ def _(mvn_dist, np, plt, stats):
             ax.plot(indices, qhi, 'k--')
 
         plot_samples(ax)
-        # plot_confidence_empirical(ax)  # 🔧
+        # plot_confidence_empirical(ax)  # 🔧 
         plot_conditioning_points(ax)
-    
+
         if len(indices) < 20:
             ax.set_xticks(indices)
         ax.set_xlabel("index $i$")
         ax.set_ylabel("$x_i$")
         return ax
 
-    _rvs_viz()
+    [
+        _rvs_viz(_samples_prior),
+        _rvs_viz(_samples_post_empirical),  # 🔧 comment out for PART 2
+        _rvs_viz(_samples_post_analytical),
+    ]
     return
 
 
