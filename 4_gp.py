@@ -2,8 +2,12 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "drawdata==0.3.8",
+#     "gpjax==0.11.1",
+#     "jax==0.6.1",
+#     "jaxlib==0.6.1",
 #     "matplotlib==3.10.3",
 #     "numpy==2.2.6",
+#     "optax==0.2.4",
 #     "scipy==1.15.3",
 # ]
 # ///
@@ -411,9 +415,9 @@ def _(X, gaussian_kernel, gp_posterior, np, plot_data, plt, x_lims, y):
 
     # Plot
     plot_data()
-    xtest = np.linspace(*x_lims, 200)
+    _xtest = np.linspace(*x_lims, 200)
     plot_posterior(
-        X.squeeze(axis=1), y, xtest,
+        X.squeeze(axis=1), y, _xtest,
         gaussian_kernel,  # 🔧
         noise_std=1, lengthscale=1,  # 🔧 underfitting?
         # noise_std=0.1, lengthscale=0.1,  # 🔧 overfitting?
@@ -421,7 +425,7 @@ def _(X, gaussian_kernel, gp_posterior, np, plot_data, plt, x_lims, y):
     plt.legend()
     plt.show()
 
-    return plot_posterior, xtest
+    return (plot_posterior,)
 
 
 @app.cell
@@ -658,6 +662,7 @@ def _(
     gaussian_kernel,
     init_lengthscale,
     init_noisestd,
+    init_variance,
     mo,
     opt_lengthscale,
     opt_noisestd,
@@ -677,6 +682,12 @@ def _(
     plt.plot(opt_trajectory_lengthscale, opt_trajectory_noisestd)
     plt.plot([opt_lengthscale], [opt_noisestd], 'r*', ms=10)
 
+    _fig_unopt = plot_toy_posterior(
+        gaussian_kernel,
+        noise_std=init_noisestd,
+        lengthscale=init_lengthscale,
+        variance=init_variance,
+    )
     _fig_pred = plot_toy_posterior(
         gaussian_kernel,
         noise_std=opt_noisestd,
@@ -684,7 +695,200 @@ def _(
         variance=opt_variance,
     )
 
-    mo.vstack([ui_init_all, mo.hstack([_fig_lml]), mo.hstack([_fig_pred])])
+    mo.vstack([
+        ui_init_all,
+        mo.hstack([_fig_lml]), 
+        # mo.hstack([_fig_unopt]),
+        mo.hstack([_fig_pred])
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+        # Fitting Gaussian processes with GPJax
+
+        In practice, you might not want to implement all the GP equations by hand. Packages such as GPJax make it easy to define a GP prior and optimize the hyperparameters using gradients, not just finite difference as we did above.
+        """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def gpjax_import_workaround():
+    def _gpjax_import_workaround():
+        import sys
+        import types
+    
+        workaround_module = types.ModuleType("jaxlib.xla_extension")
+
+        class PjitFunction: pass
+    
+        workaround_module.PjitFunction = PjitFunction
+        sys.modules["jaxlib.xla_extension"] = workaround_module
+    
+    _gpjax_import_workaround()
+    return
+
+
+@app.cell
+def _():
+    import jax
+    import jax.numpy as jnp
+    import gpjax as gpx
+    jax.config.update("jax_enable_x64", True)
+    return gpx, jax, jnp
+
+
+@app.cell
+def _(X, gpx, jax, jnp, y):
+    D = gpx.Dataset(X=X, y=y.reshape(-1,1))  # GPJax requires both X and y to be shape [N,D], even if D=1
+
+    xtest = jnp.linspace(-3.5, 3.5, 500).reshape(-1, 1)
+
+    key = jax.random.key(123)  # JAX uses explicit keys for pseudo-randomness
+    return D, key, xtest
+
+
+@app.cell
+def _(gpx):
+    kernel = gpx.kernels.RBF()  #
+    meanf = gpx.mean_functions.Zero()
+    prior = gpx.gps.Prior(mean_function=meanf, kernel=kernel)
+    return kernel, meanf, prior
+
+
+@app.cell
+def _(jnp, key, plt, prior, xtest):
+    prior_dist = prior.predict(xtest)
+
+    def plot_gpjax_samples(ax, name, dist, key, n_samples=20):
+        samples = dist.sample(key=key, sample_shape=(n_samples,))
+        ax.plot(xtest, samples.T, alpha=0.5, color='C0')
+        ax.plot([],[], color='C0', label=f"{name} samples")    
+
+    def plot_gpjax_mean_confidence(ax, name, dist, color='C1'):
+        mu = dist.mean
+        sigma = jnp.sqrt(dist.variance)
+        ax.plot(xtest, mu, color=color, label=f"{name} mean")
+        ax.fill_between(
+            xtest.flatten(),
+            mu - 2*sigma,
+            mu + 2*sigma,
+            color=color,
+            alpha=0.3,
+            label=f"{name} two sigma",
+        )
+
+    def _():
+        fig, ax = plt.subplots()
+        ax.set_xlim(xtest.min(), xtest.max())
+        plot_gpjax_samples(ax, "Prior", prior_dist, key)
+        plot_gpjax_mean_confidence(ax, "Prior", prior_dist)
+        ax.legend(loc="best")
+        return fig
+
+    _()
+    return plot_gpjax_mean_confidence, plot_gpjax_samples, prior_dist
+
+
+@app.cell
+def _(D, gpx, prior):
+    likelihood = gpx.likelihoods.Gaussian(num_datapoints=D.n)
+
+    posterior = prior * likelihood
+    return likelihood, posterior
+
+
+@app.cell
+def _(posterior):
+    posterior
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""Without optimizing hyperparameters, the GP does not fit the data very well:""")
+    return
+
+
+@app.cell
+def _(D, X, plot_gpjax_mean_confidence, plt, posterior, xtest, y):
+    def _plot():
+        fig, ax = plt.subplots(figsize=(7.5, 2.5))
+        ax.set_xlim(xtest.min(), xtest.max())
+        ax.plot(X, y, "x", label="Observations", color='C0', alpha=0.5)
+        plot_gpjax_mean_confidence(ax, "Posterior", posterior.predict(xtest, train_data=D))
+        ax.legend(loc="center left", bbox_to_anchor=(0.975, 0.5))
+        return fig
+
+    _plot()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""GPJax provides a convenience function to call the Scipy optimizer but transparently handle all the gradient computation through JAX:""")
+    return
+
+
+@app.cell
+def _(D, gpx, posterior):
+    opt_posterior, history = gpx.fit_scipy(
+        model=posterior,
+        # we use the negative mll as we are minimising
+        objective=lambda p, d: -gpx.objectives.conjugate_mll(p, d),
+        train_data=D,
+    )
+    return history, opt_posterior
+
+
+@app.cell
+def _(opt_posterior):
+    opt_posterior
+    return
+
+
+@app.cell
+def _(D, opt_posterior, xtest):
+    latent_dist = opt_posterior.predict(xtest, train_data=D)
+    predictive_dist = opt_posterior.likelihood(latent_dist)
+    return latent_dist, predictive_dist
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""Note that there is a crucial difference between the posterior about the latent function $p(f(x^*) | \mathcal{D})$, captured by `latent_dist`, and the predictive posterior about the observation of a new data point $p(y(x^*) | \mathcal{D})$, captured by `predictive_dist`:""")
+    return
+
+
+@app.cell
+def _(
+    X,
+    latent_dist,
+    plot_gpjax_mean_confidence,
+    plt,
+    predictive_dist,
+    xtest,
+    y,
+):
+    def _plot():
+        fig, ax = plt.subplots(figsize=(7.5, 2.5))
+        ax.set_xlim(xtest.min(), xtest.max())
+        ax.plot(X, y, "x", label="Observations", color='C0', alpha=0.5)
+        plot_gpjax_mean_confidence(ax, "Latent function", latent_dist)
+        plot_gpjax_mean_confidence(ax, "Predictive", predictive_dist)
+        ax.legend(loc="center left", bbox_to_anchor=(0.975, 0.5))
+        return fig
+
+    _plot()
+    return
+
+
+@app.cell
+def _():
     return
 
 
