@@ -179,7 +179,7 @@ def _(
         x_grid = np.linspace(-4, 4, 100)
 
         f_samples_prior = compute_f_samples(design_matrix_linreg(x_grid), param_samples_prior)
-    
+
         fig, axes = plt.subplots(1, 2, figsize=(10,4))
         ax_param, ax_data = axes
 
@@ -264,9 +264,9 @@ def _(X, noise_var, np, stats, y):
         *param_broadcast_dim, param_dim = params.shape
         n_data_samples, data_dim = X.shape
         assert data_dim == param_dim
-    
+
         f = params @ X.T
-    
+
         assert f.shape == (*param_broadcast_dim, n_data_samples)
         assert y.shape == (n_data_samples,)
 
@@ -323,7 +323,7 @@ def _(
 
     f_samples_prior = compute_f_samples(design_matrix_linreg(x_grid), param_samples_prior)
     f_samples_posterior = compute_f_samples(design_matrix_linreg(x_grid), param_samples_posterior)
-    
+
     def _():
         fig, axes = plt.subplots(1, 3, figsize=(10,4))
         ax0, ax1, ax2 = axes
@@ -365,7 +365,6 @@ def _(
 def _(mo):
     mo.md(
         r"""
-
         For a Gaussian prior and Gaussian likelihood, the posterior is also a Gaussian distribution.
 
         We want to find the parameters of the posterior $p(\mathbf{w}\big|\mathbf{y}) = \mathrm{N}\left(\mathbf{w}\big|\mu, \Sigma\right)$.
@@ -376,7 +375,6 @@ def _(mo):
         \Sigma &= \left(\frac{1}{\sigma^2}\mathbf{X}^T\mathbf{X} + \mathbf{S}^{-1}\right)^{-1}\\
         \mu &= \Sigma\left(\frac{1}{\sigma^2}\mathbf{X}^T\mathbf{y} + \mathbf{S}^{-1}\mathbf{m}\right)
         \end{align}
-
         """
     )
     return
@@ -389,7 +387,7 @@ def _(X, noise_var, np, prior_dist, stats, y):
         m = prior_dist.mean
         S = prior_dist.cov
         assert len(X.shape)==2 and X.shape[1] == len(m)
-    
+
         S_inv = np.linalg.inv(S)
         Sigma_inv = (X.T @ X) / noise_var + S_inv
         rhs = (X.T @ y) / noise_var + S_inv @ m
@@ -480,7 +478,7 @@ def _(
         x_grid = np.linspace(*xlims, 100)
 
         n_samples = ui_n_samples.value
-    
+
         fig, axes = plt.subplots(2, 2, figsize=(10, 8))
         ax_data, ax_prior, ax_lik, ax_post = axes.flatten()
 
@@ -497,10 +495,10 @@ def _(
 
         def plot_leastsquares(c='k'):
             if len(x) <= 1: return  # cannot compute least squares for single data point
-        
+
             lr = stats.linregress(x, y)
             f_pred = lr.slope * x_grid + lr.intercept
-        
+
             ax_data.plot(x_grid, f_pred, c+'-', label='least-squares fit')
             ax_lik.plot([lr.slope], [lr.intercept], c+'*', ms=20, zorder=3,
                        label='least-squares fit')
@@ -524,7 +522,7 @@ def _(
         if ui_show_leastsquares.value:
             plot_leastsquares()
 
-    
+
         if ui_show_prior.value or ui_show_priorsamples.value:
             ax_prior.set_title('Prior', fontweight='bold')
         else:
@@ -537,7 +535,7 @@ def _(
             plot_func_marginals(prior_dist, 'r', label='prior mean±2std')
             plot_contour(ax_prior, prior_dist.pdf)
 
-    
+
         if ui_show_posterior.value or ui_show_posteriorsamples.value:
             ax_post.set_title('Posterior', fontweight='bold')
         else:
@@ -550,7 +548,7 @@ def _(
         if ui_show_posteriorsamples.value:
             plot_samples(ax_post, posterior_dist.rvs(n_samples), 'm')
 
-    
+
         ax_lik.set_title('Likelihood', fontweight='bold')
         plot_contour(ax_lik, compute_likelihood)
 
@@ -558,7 +556,7 @@ def _(
         if ui_show_legend.value:
             ax_data.legend(loc='best')
             ax_lik.legend(loc='lower left')
-    
+
         plt.tight_layout()
         return fig
 
@@ -628,16 +626,16 @@ def _(compute_f_marginals, np, plt, stats, xp_fine):
     def plot_prior_samples(design_matrix_fn):
         X = design_matrix_fn(xp_fine)
         dim = X.shape[1]
-    
+
         prior_dist = stats.multivariate_normal(np.zeros(dim), np.eye(dim))
-    
+
         param_samples = prior_dist.rvs(30)
 
         fig = plt.figure()
         plt.xlim(xp_fine[0], xp_fine[-1])
-    
+
         plt.plot(xp_fine, X @ param_samples.T, 'b-', alpha=0.25)
-    
+
         mu_f, var_f = compute_f_marginals(X, prior_dist)
         std_f = np.sqrt(var_f)
         plt.plot(xp_fine, mu_f, 'r')
@@ -659,19 +657,19 @@ def _(compute_f_marginals, compute_param_posterior, np, plt, stats, xp_fine):
     def plot_regression(x, y, design_matrix_fn, noise_std=1e-3):
         X = design_matrix_fn(x)
         dim = X.shape[1]
-    
+
         prior_dist = stats.multivariate_normal(np.zeros(dim), np.eye(dim))
         post_dist = compute_param_posterior(X, y, prior_dist, noise_var=noise_std**2)
-    
+
         np.random.seed(21345)
         param_samples = post_dist.rvs(30)
 
         fig = plt.figure()
         plt.xlim(xp_fine[0], xp_fine[-1])
-    
+
         Xgrid = design_matrix_fn(xp_fine)
         plt.plot(xp_fine, Xgrid @ param_samples.T, 'b-', alpha=0.25)
-    
+
         mu_f, var_f = compute_f_marginals(Xgrid, post_dist)
         std_f = np.sqrt(var_f)
         plt.plot(xp_fine, mu_f, 'r')
@@ -818,7 +816,13 @@ def _(
 
 @app.cell
 def _(mo):
-    mo.md(r"""What if we could have an **infinite** number of basis functions???""")
+    mo.md(
+        r"""
+        What if we could have an **infinite** number of basis functions???
+
+        We can do this by putting a distribution on the function values directly: $p(\mathbf{f})$ ...
+        """
+    )
     return
 
 
