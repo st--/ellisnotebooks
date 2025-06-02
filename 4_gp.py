@@ -2,10 +2,12 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "drawdata==0.3.8",
+#     "flax==0.10.6",
 #     "gpjax==0.11.1",
 #     "jax==0.6.1",
 #     "jaxlib==0.6.1",
 #     "matplotlib==3.10.3",
+#     "nnx==0.0.8",
 #     "numpy==2.2.6",
 #     "optax==0.2.4",
 #     "scipy==1.15.3",
@@ -884,6 +886,113 @@ def _(
         return fig
 
     _plot()
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""# Deep ensembles""")
+    return
+
+
+@app.cell
+def _():
+    # import jax
+    # import jax.numpy as jnp
+    import optax
+    from flax import nnx
+    # import matplotlib.pyplot as plt
+    return nnx, optax
+
+
+@app.cell
+def _(X, jax, nnx, np, optax, plt, y):
+    # Model definition using nnx
+    class MLP(nnx.Module):
+        def __init__(self, rngs):
+            self.linear1 = nnx.Linear(1, 64, rngs=rngs)
+            self.linear2 = nnx.Linear(64, 64, rngs=rngs)
+            self.linear3 = nnx.Linear(64, 1, rngs=rngs)
+
+        def __call__(self, x):
+            x = nnx.relu(self.linear1(x))
+            x = nnx.relu(self.linear2(x))
+            return self.linear3(x)
+
+    # Training function
+    def train_model(key, X, y, epochs=300):
+        model = MLP(nnx.Rngs(key))
+        optimizer = nnx.Optimizer(model, optax.adam(1e-2))
+
+        @nnx.jit
+        def train_step(model, optimizer, X, y):
+            def loss_fn(model):
+                y_pred = model(X).squeeze(1)
+                loss = ((y_pred - y) ** 2).mean()
+                return loss
+
+            loss, grads = nnx.value_and_grad(loss_fn)(model)
+            optimizer.update(grads)
+            return loss
+
+        losses = []
+        for _ in range(epochs):
+            loss = train_step(model, optimizer, X, y)
+            losses.append(np.array(loss))
+
+        return model, losses
+
+    def create_ensemble(key):  
+        # Create and train ensemble
+        n_ensemble = 5
+        ensemble_models = []
+        all_losses = []
+        for i in range(n_ensemble):
+            key, subkey = jax.random.split(key)
+            trained_model, losses = train_model(subkey, X, y)
+            ensemble_models.append(trained_model)
+            all_losses.append(losses)
+
+        fig = plt.figure()
+        plt.plot(np.array(all_losses).T)
+        return ensemble_models, fig
+
+    ensemble_models, _fig = create_ensemble(key=jax.random.PRNGKey(0))
+    plt.show()
+    return MLP, create_ensemble, ensemble_models, train_model
+
+
+@app.cell
+def _(X, ensemble_models, jnp, plt, y):
+    def _():    
+        # Prediction
+        X_test = jnp.linspace(-6, 6, 200).reshape(-1, 1)
+        preds = []
+        for model in ensemble_models:
+            pred = model(X_test)
+            preds.append(pred.squeeze())
+    
+        preds = jnp.stack(preds)  # [n_ensemble, n_points]
+        mean = preds.mean(axis=0)
+        std = preds.std(axis=0)
+    
+        # Plot
+        plt.figure(figsize=(10, 6))
+        plt.plot(X, y, 'kx', label='Train Data')
+        plt.plot(X_test, mean, label='Predictive Mean')
+        plt.fill_between(
+            X_test.squeeze(),
+            mean - 2 * std,
+            mean + 2 * std,
+            alpha=0.3,
+            label='Uncertainty (±2σ)'
+        )
+        plt.title("Deep Ensemble with JAX + nnx")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    _()
     return
 
 
