@@ -10,7 +10,7 @@ def _():
     return (mo,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
@@ -69,8 +69,9 @@ def _():
     return (b,)
 
 
-@app.cell
-def _():
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""For more information, you can run `marimo tutorial intro` and check out the [online documentation](https://docs.marimo.io/getting_started/).""")
     return
 
 
