@@ -942,14 +942,14 @@ def _(X, jax, nnx, np, optax, plt, y):
 
         return model, losses
 
-    def create_ensemble(key):  
+    def create_ensemble(key, epochs=300):  
         # Create and train ensemble
         n_ensemble = 5
         ensemble_models = []
         all_losses = []
         for i in range(n_ensemble):
             key, subkey = jax.random.split(key)
-            trained_model, losses = train_model(subkey, X, y)
+            trained_model, losses = train_model(subkey, X, y, epochs)
             ensemble_models.append(trained_model)
             all_losses.append(losses)
 
@@ -990,6 +990,7 @@ def _(X, ensemble_models, jnp, plt, y):
         plt.title("Deep Ensemble with JAX + nnx")
         plt.legend()
         plt.grid(True)
+        # plt.xlim(-4,4); plt.ylim(-3,3)  # zoom in
         plt.show()
 
     _()
