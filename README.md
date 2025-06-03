@@ -1,6 +1,6 @@
 # Marimo notebooks for ELLIS Manchester summer school 2025
 
-You can run the notebooks either locally (faster, recommended) or online (slower but no installation required).
+You can run the notebooks either locally (faster, recommended) or online (slower, does not support JAX, but no installation required).
 
 ## Run locally
 
@@ -34,4 +34,8 @@ Here are direct links for these notebooks:
 - [3_infmvn.py](https://marimo.app?src=https%3A%2F%2Fgithub.com%2Fst--%2Fellisnotebooks%2Fblob%2Fmain%2F3_infmvn.py)
 - [4_gp.py](https://marimo.app?src=https%3A%2F%2Fgithub.com%2Fst--%2Fellisnotebooks%2Fblob%2Fmain%2F4_gp.py)
 
-I encountered some issues with imports not running properly. I could fix this by adding a new cell, copying the relevant import statements in there again, and running this new cell.
+You have to manually start "running all cells" by pressing the "Run" icon in the bottom-right corner (highlighted in yellow when there are stale cells that have not yet been run).
+
+Sometimes in the online version I encountered some issues with imports not running properly. I could fix this by adding a new cell, copying the relevant import statements in there again, and running this new cell.
+
+Note that the last demos in `4_gp.py` that rely on JAX do not work online; for those, you have to install locally.
