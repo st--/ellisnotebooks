@@ -729,12 +729,10 @@ def _(design_matrix_polyreg, nlX, nlY, plot_nonlin_data, plot_regression, plt):
     return
 
 
-app._unparsable_cell(
-    r"""
-    You can see what happens if you add more columns corresponding to higher orders into `design_matrix_polyreg`.
-    """,
-    name="_"
-)
+@app.cell
+def _(mo):
+    mo.md(r"""You can see what happens if you add more columns corresponding to higher orders into `design_matrix_polyreg`.""")
+    return
 
 
 @app.cell
