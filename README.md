@@ -4,9 +4,10 @@ You can run the notebooks either locally (faster, recommended) or online (slower
 
 ## Run locally
 
-First, [install marimo](https://docs.marimo.io/getting_started/installation/):
+First, [install marimo](https://docs.marimo.io/getting_started/installation/) and `uv` (required by the `--sandbox` option):
 ```bash
 pip install marimo
+pip install uv
 ```
 (See marimo docs for instructions using `uv` or `conda` instead of `pip`).
 
@@ -21,6 +22,7 @@ You can edit (or create new) marimo notebooks using
 ```bash
 marimo edit --sandbox <notebook>.py
 ```
+(The `--sandbox` option implicitly creates a dedicated python environment for the notebook, which helps avoid version incompatibility issues with packages you may have already installed before.)
 
 ## Run online
 
