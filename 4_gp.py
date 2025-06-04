@@ -35,20 +35,24 @@ def _():
     return np, plt, stats
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        # Kernel functions and Gaussian process prior
+    # Covariance functions and Gaussian process prior
 
-        The **kernel function** $k(x, x')$ defines the core characteristics of a Gaussian process, e.g. differentiability
-        """
+    The **covariance function** (also commonly referred to as **kernel function**) $k(x, x')$ defines the core characteristics of a Gaussian process, e.g. differentiability, periodicitiy...
+
+    To be a valid covariance function, $k(x, x')$ has to be "positive definite", i.e. for any set of input points $\{x_i\}_{i=1}^N$, the matrix defined by $[\mathbf{K}]_{ij} = k(x_i, x_j)$ has to be a positive-definite matrix (symmetric and all eigenvalues $> 0$).
+    """
     )
     return
 
 
 @app.cell
 def _(np):
+    # Here we define several valid covariance functions. Note that some of them depend on additional parameters, so-called "hyperparameters" (because they are not parameters of a functional model (such as the weights in linear regression) itself, but parameters of the function that defines the properties of the functional model)
+
     def gaussian_kernel(x1, x2, lengthscale=1.0, variance=1.0):
         sqdist = np.subtract.outer(x1, x2)**2
         return variance * np.exp(-0.5 * sqdist / lengthscale**2)
@@ -106,13 +110,24 @@ def _(np, plt, stats):
         samples, K = sample_gp(x, kernel_func, n_samples, **kernel_params)
 
         fig = plt.figure(figsize=(10, 4))
-        plt.subplot(1,2,2)
-        plt.imshow(K)
+
+        # visualize covariance (kernel) function 
+        plt.subplot(1,3,3)
+        if np.any(K < 0):
+            vmax = np.max(np.abs(K))
+            vmin = -vmax
+            cmap = 'seismic'
+        else:
+            vmax = np.max(K)
+            vmin = 0
+            cmap = 'viridis'
+        plt.imshow(K, extent=[x.min(), x.max(), x.max(), x.min()], vmin=vmin, vmax=vmax, cmap=cmap)
+        plt.colorbar(fraction=0.046, pad=0.04)
         plt.xlabel("$x$")
         plt.ylabel("$x'$")
         plt.title("$k(x,x')$")
-    
-        plt.subplot(1,2,1)
+
+        plt.subplot(1,3,(1,2))
         for i in range(samples.shape[0]):
             plt.plot(x, samples[i], label=f'Sample {i+1}')
 
@@ -124,6 +139,8 @@ def _(np, plt, stats):
         plt.xlabel("$x$")
         plt.ylabel("$f(x)$")
         plt.legend(loc='upper left')
+
+        plt.tight_layout()
         return fig
     return plot_samples, sample_gp
 

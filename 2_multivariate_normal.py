@@ -13,7 +13,10 @@
 import marimo
 
 __generated_with = "0.12.5"
-app = marimo.App(width="medium", layout_file="layouts/2_mvn.slides.json")
+app = marimo.App(
+    width="medium",
+    layout_file="layouts/2_multivariate_normal.slides.json",
+)
 
 
 @app.cell
@@ -55,7 +58,7 @@ def _(mo):
         $$ \mathrm{N}(VAR | \mu, \sigma^2) $$
 
         Fully defined by mean $\mu$ and standard deviation $\sigma$ / variance $\sigma^2$
-    
+
         $$\mathbb{E}[VAR] = \mu \qquad \mathbb{V}[VAR] = \sigma^2$$
         """.replace("VAR", r"{\color{red} VAR}").replace("VAR", _var)
     )
@@ -893,7 +896,7 @@ def _(mo):
         # Conditioning in higher dimensions
 
         We can exactly condition a multivariate Gaussian distribution even in higher dimensions, the equation looks almost the same as in the bivariate case:
-    
+
         $$
         p(x_1, x_2) = \mathrm{N}\left(\begin{bmatrix}x_1 \\ x_2\end{bmatrix}
             | \begin{bmatrix}\mu_1 \\ \mu_2\end{bmatrix}, \begin{bmatrix}\Sigma_{11} & \Sigma_{12} \\ \Sigma_{21} & \Sigma_{22}\end{bmatrix} \right)
@@ -1112,7 +1115,7 @@ def _(
             ax.plot(indices, qhi, 'k--')
 
         plot_samples(ax)
-        # plot_confidence_empirical(ax)  # 🔧 
+        plot_confidence_empirical(ax)  # 🔧 
         plot_conditioning_points(ax)
 
         if len(indices) < 20:
