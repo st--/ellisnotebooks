@@ -17,12 +17,13 @@ Clone this repository on your own computer:
 ```bash
 git clone https://github.com/st--/ellisnotebooks.git
 ```
+(or just download the notebooks manually.)
 
 You can edit (or create new) marimo notebooks using
 ```bash
 marimo edit --sandbox <notebook>.py
 ```
-(The `--sandbox` option implicitly creates a dedicated python environment for the notebook, which helps avoid version incompatibility issues with packages you may have already installed before.)
+(The `--sandbox` option comes highly recommended; it implicitly creates a dedicated python environment for the notebook, which helps avoid version incompatibility issues with packages you may have already installed before. Remember that you have to explicitly install `uv` for it to work.)
 
 ## Run online
 
@@ -36,11 +37,12 @@ Here are direct links for these notebooks:
 - [3_infmvn.py](https://marimo.app?src=https%3A%2F%2Fgithub.com%2Fst--%2Fellisnotebooks%2Fblob%2Fmain%2F3_infmvn.py)
 - [4_gp.py](https://marimo.app?src=https%3A%2F%2Fgithub.com%2Fst--%2Fellisnotebooks%2Fblob%2Fmain%2F4_gp.py)
 
-You have to manually start "running all cells" by pressing the "Run" icon in the bottom-right corner (highlighted in yellow when there are stale cells that have not yet been run).
-
-Sometimes in the online version I encountered some issues with imports not running properly. I could fix this by adding a new cell, copying the relevant import statements in there again, and running this new cell.
-
 Note that the last demos in `4_gp.py` that rely on JAX do not work online; for those, you have to install locally.
+
+Potential gotchas:
+
+- You may have to manually start "running all cells" by pressing the "Run" icon in the bottom-right corner (highlighted in yellow when there are stale cells that have not yet been run).
+- Sometimes in the online version I encountered some issues with imports not running properly. I could fix this by adding a new cell, copying the relevant import statements in there again, and running this new cell.
 
 ## Resources
 
