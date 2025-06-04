@@ -6,6 +6,7 @@
 #     "gpjax==0.11.1",
 #     "jax==0.6.1",
 #     "jaxlib==0.6.1",
+#     "marimo",
 #     "matplotlib==3.10.3",
 #     "nnx==0.0.8",
 #     "numpy==2.2.6",
@@ -68,7 +69,7 @@ def _(np):
 
     def product_of_gaussian_and_linear_kernel(x1, x2, lengthscale=1):
         return gaussian_kernel(x1, x2, lengthscale=lengthscale) * linear_kernel(x1, x2)
-    
+
     def sum_of_periodic_and_linear_kernel(x1, x2):
         return periodic_kernel(x1, x2) + linear_kernel(x1, x2)
     return (
@@ -102,9 +103,16 @@ def _(np, plt, stats):
     def plot_samples(kernel_func, n_samples=5, **kernel_params):
         """ visualizes samples from the Gaussian process prior defined by `kernel_func` with its `kernel_params` """
         x = np.linspace(-5, 5, 300)
-        samples, _ = sample_gp(x, kernel_func, n_samples, **kernel_params)
-    
+        samples, K = sample_gp(x, kernel_func, n_samples, **kernel_params)
+
         fig = plt.figure(figsize=(10, 4))
+        plt.subplot(1,2,2)
+        plt.imshow(K)
+        plt.xlabel("$x$")
+        plt.ylabel("$x'$")
+        plt.title("$k(x,x')$")
+    
+        plt.subplot(1,2,1)
         for i in range(samples.shape[0]):
             plt.plot(x, samples[i], label=f'Sample {i+1}')
 
@@ -113,8 +121,8 @@ def _(np, plt, stats):
         if extra != "": extra = ", "+extra
         plt.title(f"Samples from Gaussian process prior with {kernel_name}" + extra)
         plt.xlim(x.min(), x.max())
-        plt.xlabel("x")
-        plt.ylabel("f(x)")
+        plt.xlabel("$x$")
+        plt.ylabel("$f(x)$")
         plt.legend(loc='upper left')
         return fig
     return plot_samples, sample_gp
@@ -297,7 +305,7 @@ def draw_data_extractor(datawidget, mo, np, run_button, use_preset_data):
         raw_X = raw_y = None
     else:
         has_data = False
-    
+
         def extract_X_y(data):
             if len(data[0]) == 0:
                 return np.zeros((0, 1)), np.zeros((0,))
@@ -308,18 +316,18 @@ def draw_data_extractor(datawidget, mo, np, run_button, use_preset_data):
                 raw_X = xy[:, :1]
                 raw_y = xy[:, 1]
             return raw_X, raw_y
-    
+
         raw_X, raw_y = extract_X_y(datawidget.data_as_X_y)
         has_data = len(raw_X) >= 1
-    
+
         def warn_no_data():
             warning_msg = mo.md(""" /// warning
         Need more data, please draw at least one point in the scatter widget
         """)
             mo.stop(not has_data, warning_msg)
-    
+
         warn_no_data()
-    
+
         mo.stop(
             not run_button.value,  # if button hasn't been clicked yet
             mo.md(""" /// tip 
@@ -334,6 +342,8 @@ def data_setup(nlX, nlY, plt, raw_X, raw_y, use_preset_data):
     if use_preset_data:
         # use pre-determined nonlinear data set
         X, y = nlX[:, None], nlY
+        # mask = (nlX < -1) | (nlX > 0)
+        # X, y = X[mask], y[mask]
     else:
         # use data from the drawdata ScatterWidget below
         X, y = raw_X, raw_y
@@ -405,12 +415,12 @@ def _(X, gaussian_kernel, gp_posterior, np, plot_data, plt, x_lims, y):
     def plot_posterior(train_x, train_y, x_test, kernel_func, noise_std, **kernel_params):
         mean_s, cov_s = gp_posterior(train_x, train_y, x_test, kernel_func, noise_std=noise_std, **kernel_params)
         std_s = np.sqrt(np.diag(cov_s))
-    
+
         kernel_name = kernel_func.__name__.replace('_', ' ').title()
         extra = ", ".join(f"{k}={np.round(v,3)}" for (k, v) in kernel_params.items())
         if extra != "": extra = ", "+extra
         plt.title(f"Gaussian process posterior with {kernel_name}" + extra + f", noise std.dev={np.round(noise_std,3)}")
-    
+
         plt.plot(x_test, mean_s, 'k', lw=2, label='Mean prediction')
         plt.fill_between(x_test, mean_s - 2*std_s, mean_s + 2*std_s, color='gray', alpha=0.3, label='+/- 2 std.dev.')
 
@@ -426,7 +436,6 @@ def _(X, gaussian_kernel, gp_posterior, np, plot_data, plt, x_lims, y):
     )
     plt.legend()
     plt.show()
-
     return (plot_posterior,)
 
 
@@ -640,7 +649,6 @@ def _(
     print("Optimized variance:      ", opt_variance)
     print("Optimized noise variance:", opt_noisestd)
     print("Final negative log marginal likelihood:", res.fun)
-
     return (
         callback,
         initial_log_params,
@@ -723,14 +731,14 @@ def gpjax_import_workaround():
     def _gpjax_import_workaround():
         import sys
         import types
-    
+
         workaround_module = types.ModuleType("jaxlib.xla_extension")
 
         class PjitFunction: pass
-    
+
         workaround_module.PjitFunction = PjitFunction
         sys.modules["jaxlib.xla_extension"] = workaround_module
-    
+
     _gpjax_import_workaround()
     return
 
@@ -971,11 +979,11 @@ def _(X, ensemble_models, jnp, plt, y):
         for model in ensemble_models:
             pred = model(X_test)
             preds.append(pred.squeeze())
-    
+
         preds = jnp.stack(preds)  # [n_ensemble, n_points]
         mean = preds.mean(axis=0)
         std = preds.std(axis=0)
-    
+
         # Plot
         plt.figure(figsize=(10, 6))
         plt.plot(X, y, 'kx', label='Train Data')
