@@ -12,11 +12,26 @@
 
 import marimo
 
-__generated_with = "0.12.5"
+__generated_with = "0.13.15"
 app = marimo.App(
     width="medium",
     layout_file="layouts/2_multivariate_normal.slides.json",
 )
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    # Multivariate normal distributions
+
+    &copy; 2025 by [ST John](https://github.com/st--)
+
+
+    We want to put a distribution $p(\mathbf{f}) = p(f_1, f_2, ..., f_N)$ on all the function values corresponding to our $N$ observed data points. For that, we will use the simplest multivariate distribution... the multivariate Gaussian distribution. Let's get a bit more familiar with that!
+    """
+    )
+    return
 
 
 @app.cell
@@ -31,18 +46,6 @@ def _():
     import matplotlib.pyplot as plt
     from scipy import stats
     return np, plt, stats
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
-        # Multivariate normal distributions
-
-        We want to put a distribution $p(\mathbf{f}) = p(f_1, f_2, ..., f_N)$ on all the function values corresponding to our $N$ observed data points. For that, we will use the simplest multivariate distribution... the multivariate Gaussian distribution. Let's get a bit more familiar with that!
-        """
-    )
-    return
 
 
 @app.cell(hide_code=True)
@@ -127,18 +130,18 @@ def _(mean_slider, mo, plot_normal_distribution, std_slider, ui_1d):
 def _(mo):
     mo.md(
         r"""
-        # Multivariate Gaussian distribution
+    # Multivariate Gaussian distribution
 
-        $$
-        \mathrm{N}(\mathbf{x} | \boldsymbol{\mu}, \boldsymbol{\Sigma})
-        $$
+    $$
+    \mathrm{N}(\mathbf{x} | \boldsymbol{\mu}, \boldsymbol{\Sigma})
+    $$
 
-        where:
+    where:
 
-        - $\mathbf{x}$ is a $d$-dimensional random vector
-        - $\mathbb{E}[\mathbf{x}] = \boldsymbol{\mu}$ is the $d$-dimensional mean vector
-        - $\operatorname{cov}[\mathbf{x}] = \boldsymbol{\Sigma}$ is the $d \times d$ covariance matrix
-        """
+    - $\mathbf{x}$ is a $d$-dimensional random vector
+    - $\mathbb{E}[\mathbf{x}] = \boldsymbol{\mu}$ is the $d$-dimensional mean vector
+    - $\operatorname{cov}[\mathbf{x}] = \boldsymbol{\Sigma}$ is the $d \times d$ covariance matrix
+    """
     )
     return
 
@@ -152,7 +155,7 @@ def _(mo):
 
     ui_cov2d_diag = mo.ui.array([a_slider, b_slider])
     ui_cov2d_offd = mo.ui.array([rho_slider])
-    return a_slider, b_slider, rho_slider, ui_cov2d_diag, ui_cov2d_offd
+    return ui_cov2d_diag, ui_cov2d_offd
 
 
 @app.cell
@@ -171,7 +174,7 @@ def _(np, ui_cov2d_diag, ui_cov2d_offd):
             [1, rho],
             [rho, 1]
         ])
-    return a, b, cov_matrix_diag, cov_matrix_offd, rho
+    return cov_matrix_diag, cov_matrix_offd
 
 
 @app.cell(hide_code=True)
@@ -183,7 +186,7 @@ def _(mo):
         value=list(cov2d_choices)[0],
         label="# Covariance matrix:"
     )
-    return cov2d_choices, ui_cov2d_chooser
+    return (ui_cov2d_chooser,)
 
 
 @app.cell(hide_code=True)
@@ -215,19 +218,17 @@ def _(cov2d_choice, cov_matrix_diag, cov_matrix_offd):
     return cov_elem_eqn, cov_matrix, cov_ui_eqn
 
 
-@app.cell(hide_code=True)
-def matrix_to_latex():
-    def matrix_to_latex(mat):
-        if len(mat.shape) == 1:
-            # turn vector into 1-column matrix
-            mat = mat[:, None]
+@app.function(hide_code=True)
+def matrix_to_latex(mat):
+    if len(mat.shape) == 1:
+        # turn vector into 1-column matrix
+        mat = mat[:, None]
 
-        rows = [
-            " & ".join(str(mat[i, j]) for j in range(mat.shape[1]))
-            for i in range(mat.shape[0])
-        ]
-        return r"\begin{bmatrix} " + r" \\ ".join(rows) + r" \end{bmatrix}"
-    return (matrix_to_latex,)
+    rows = [
+        " & ".join(str(mat[i, j]) for j in range(mat.shape[1]))
+        for i in range(mat.shape[0])
+    ]
+    return r"\begin{bmatrix} " + r" \\ ".join(rows) + r" \end{bmatrix}"
 
 
 @app.cell(hide_code=True)
@@ -241,7 +242,6 @@ def _(
     cov_elem_eqn,
     cov_matrix,
     cov_ui_eqn,
-    matrix_to_latex,
     mo,
     np,
     plot_2d_gaussian,
@@ -374,26 +374,26 @@ def _(
         plt.tight_layout()
 
         return plt.gca()
-    return cm, plot_2d_gaussian
+    return (plot_2d_gaussian,)
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        # Marginalizing: Projection
+    # Marginalizing: Projection
 
-        Given a joint distribution $p(\mathbf{x}) = p(x_1, x_2)$, a *marginal* distribution is the distribution of a subset of the random variables, which we get by integrating out the others:
+    Given a joint distribution $p(\mathbf{x}) = p(x_1, x_2)$, a *marginal* distribution is the distribution of a subset of the random variables, which we get by integrating out the others:
 
-        \begin{align}
-        p(x_1) &= \int p(x_1, x_2) \mathrm{d}x_2 \\
-        p(x_2) &= \int p(x_1, x_2) \mathrm{d}x_1
-        \end{align}
+    \begin{align}
+    p(x_1) &= \int p(x_1, x_2) \mathrm{d}x_2 \\
+    p(x_2) &= \int p(x_1, x_2) \mathrm{d}x_1
+    \end{align}
 
-        (i.e., "projection onto the margins")
+    (i.e., "projection onto the margins")
 
-        For a multivariate Gaussian distribution, all marginal distributions are also Gaussian.
-        """
+    For a multivariate Gaussian distribution, all marginal distributions are also Gaussian.
+    """
     )
     return
 
@@ -476,14 +476,14 @@ def _(np, plot_bivariate_gaussian, plt, stats):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        # Marginalizing in higher dimensions
+    # Marginalizing in higher dimensions
 
-        Let's convince ourselves that this works the same in higher dimensions.
-        """
+    Let's convince ourselves that this works the same in higher dimensions.
+    """
     )
     return
 
@@ -521,12 +521,7 @@ def _(button_redraw, np, stats):
     # random_covariance_matrix = (matrix_factor @ matrix_factor.T) + 0.1 * np.eye(D)
 
     assert (np.linalg.eigvals(random_covariance_matrix) > 0).all(), "covariance matrix must be positive-definite"
-    return (
-        D,
-        random_covariance_from_wishart,
-        random_covariance_matrix,
-        random_mean_vector,
-    )
+    return D, random_covariance_matrix, random_mean_vector
 
 
 @app.cell
@@ -571,10 +566,10 @@ def _(D, np, plt, random_covariance_matrix, random_mean_vector, stats):
     plt.plot(_x_grid, xi_marginal.pdf(_x_grid), 'k-')
 
     plt.gcf()
-    return X_i, i, random_mvn, xi_marginal
+    return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(button_redraw):
     button_redraw
     return
@@ -586,34 +581,34 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        ## Conditioning (Slicing/Filtering)
+    ## Conditioning (Slicing/Filtering)
 
-        $$ p(A | B) = \frac{p(A \cap B)}{p(B)} $$
+    $$ p(A | B) = \frac{p(A \cap B)}{p(B)} $$
 
-        The conditional distribution of a random variable, given a value of another random variable that is now held constant at that value, corresponds to "filtering" out only that part of the joint distribution. This is effectively Bayes's theorem.
+    The conditional distribution of a random variable, given a value of another random variable that is now held constant at that value, corresponds to "filtering" out only that part of the joint distribution. This is effectively Bayes's theorem.
 
-        We can actually do this empirically, by taking samples from A and discarding those that are not in B!
+    We can actually do this empirically, by taking samples from A and discarding those that are not in B!
 
 
-        ### in Gaussian distribution:
+    ### in Gaussian distribution:
 
-        Here, conditional distributions are again Gaussian as well:
+    Here, conditional distributions are again Gaussian as well:
 
-        $$
-        p(x_1, x_2) = \mathrm{N}\left(\begin{bmatrix}x_1 \\ x_2\end{bmatrix}
-            | \begin{bmatrix}\mu_1 \\ \mu_2\end{bmatrix}, \begin{bmatrix}\Sigma_{11} & \Sigma_{12} \\ \Sigma_{21} & \Sigma_{22}\end{bmatrix} \right)
-        $$
+    $$
+    p(x_1, x_2) = \mathrm{N}\left(\begin{bmatrix}x_1 \\ x_2\end{bmatrix}
+        | \begin{bmatrix}\mu_1 \\ \mu_2\end{bmatrix}, \begin{bmatrix}\Sigma_{11} & \Sigma_{12} \\ \Sigma_{21} & \Sigma_{22}\end{bmatrix} \right)
+    $$
 
-        $$
-        p(x_1 | x_2 = {\color{orange}\tilde{x}_2}) = \mathrm{N}\big( x_1
-        \;|\; \overbrace{\Sigma_{12} \Sigma_{22}^{-1} ({\color{orange}\tilde{x}_2} - \mu_2) + \mu_1},
-        \quad \overbrace{\Sigma_{11} - \Sigma_{12} \Sigma_{22}^{-1} \Sigma_{21}} \big)
-        $$
-        """
+    $$
+    p(x_1 | x_2 = {\color{orange}\tilde{x}_2}) = \mathrm{N}\big( x_1
+    \;|\; \overbrace{\Sigma_{12} \Sigma_{22}^{-1} ({\color{orange}\tilde{x}_2} - \mu_2) + \mu_1},
+    \quad \overbrace{\Sigma_{11} - \Sigma_{12} \Sigma_{22}^{-1} \Sigma_{21}} \big)
+    $$
+    """
     )
     return
 
@@ -710,12 +705,12 @@ def _(
 def _(mo):
     mo.md(
         r"""
-        ### 🔧 Try it yourself
+    ### 🔧 Try it yourself
 
-        - vary `_x2_condition` using the slider above
-        - play with `_tolerance` (cell right above) vs `_num_samples` (cell further above)
-        - compare against the exact conditional distribution that for a Gaussian we can compute in closed form
-        """
+    - vary `_x2_condition` using the slider above
+    - play with `_tolerance` (cell right above) vs `_num_samples` (cell further above)
+    - compare against the exact conditional distribution that for a Gaussian we can compute in closed form
+    """
     )
     return
 
@@ -724,16 +719,16 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-        # Visualizing samples in higher dimensions
+    # Visualizing samples in higher dimensions
 
-        So far, we looked at only bivariate (2D) Gaussian distributions, because then we can plot the full probability distribution. However, in the end we want to put a distribution over many points. We will no longer be able to plot the full $N$-dimensional pdf, but we can consider a different way of visualizing samples from high-dimensional distributions:
-        """
+    So far, we looked at only bivariate (2D) Gaussian distributions, because then we can plot the full probability distribution. However, in the end we want to put a distribution over many points. We will no longer be able to plot the full $N$-dimensional pdf, but we can consider a different way of visualizing samples from high-dimensional distributions:
+    """
     )
     return
 
 
 @app.cell
-def _(matrix_to_latex, mo, np, plot_bivariate_gaussian, plt, stats):
+def _(mo, np, plot_bivariate_gaussian, plt, stats):
     _cov_matrix = np.array(  # 🔧
         [[1, 0.8],
          [0.8, 1]]
@@ -783,12 +778,12 @@ def _(matrix_to_latex, mo, np, plot_bivariate_gaussian, plt, stats):
 def _(mo):
     mo.md(
         r"""
-        ### 🔧 Try it yourself
+    ### 🔧 Try it yourself
 
-        - edit `_points` manually to grasp the change of visualization
-        - change `_points` to be random draws from the distribution
-        - change `_cov_matrix` (either manually, or by pointing it to `cov_matrix_offd` and also uncommenting the line with `ui_cov2d_offd` at the bottom)
-        """
+    - edit `_points` manually to grasp the change of visualization
+    - change `_points` to be random draws from the distribution
+    - change `_cov_matrix` (either manually, or by pointing it to `cov_matrix_offd` and also uncommenting the line with `ui_cov2d_offd` at the bottom)
+    """
     )
     return
 
@@ -800,7 +795,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(button_redraw_rvs, matrix_to_latex, mo, np, plt, stats):
+def _(button_redraw_rvs, mo, np, plt, stats):
     def generate_covmatrix(D):
         mat = np.zeros((D, D))
         for i in range(D):
@@ -868,28 +863,23 @@ def _(button_redraw_rvs, matrix_to_latex, mo, np, plt, stats):
         button_redraw_rvs,
         # button_redraw,  # 🔧 if you use `covariance_matrix = random_covariance_matrix`
     ])
-    return (
-        covariance_matrix,
-        generate_covmatrix,
-        generate_covmatrix_gaussian,
-        mvn_dist,
-    )
+    return generate_covmatrix_gaussian, mvn_dist
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        ### 🔧 Try it yourself
+    ### 🔧 Try it yourself
 
-        - change the parameters and/or the method that generate `covariance_matrix`
-        - can you map the values of the covariance matrix to how it affects the distribution of points?
-        """
+    - change the parameters and/or the method that generate `covariance_matrix`
+    - can you map the values of the covariance matrix to how it affects the distribution of points?
+    """
     )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
@@ -1000,10 +990,7 @@ def _(np, stats):
             full_samples[:, idx] = uncond_samples[:, i]
 
         return full_samples
-    return (
-        conditional_multivariate_normal,
-        sample_conditional_multivariate_normal,
-    )
+    return (sample_conditional_multivariate_normal,)
 
 
 @app.cell
@@ -1018,18 +1005,18 @@ def _(np):
     return (mv_condition_samples,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        Let's look at conditioning in higher dimensions.
+    Let's look at conditioning in higher dimensions.
 
-        - You can uncomment the line that plots the empirical mean and confidence band
-        - Change the points on which you condition
-        - What is the effect of changing mean and/or covariance matrix (cf previous section)?
+    - You can uncomment the line that plots the empirical mean and confidence band
+    - Change the points on which you condition
+    - What is the effect of changing mean and/or covariance matrix (cf previous section)?
 
-        As PART 2, you can use a much higher-dimensional distribution - you might want to comment out the empirical conditioning which will work less and less well the more points you condition on.
-        """
+    As PART 2, you can use a much higher-dimensional distribution - you might want to comment out the empirical conditioning which will work less and less well the more points you condition on.
+    """
     )
     return
 
@@ -1143,7 +1130,7 @@ def _(generate_covmatrix_gaussian, np, stats):
         # mean=np.arange(_dim),
         cov=generate_covmatrix_gaussian(_dim, ell=1) + 1e-6*np.eye(_dim)
     )
-    return (dist100,)
+    return
 
 
 if __name__ == "__main__":

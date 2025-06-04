@@ -12,13 +12,19 @@
 
 import marimo
 
-__generated_with = "0.12.5"
+__generated_with = "0.13.15"
 app = marimo.App()
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""# Linear regression and Gaussian distributions""")
+    mo.md(
+        r"""
+    # Linear regression and Gaussian distributions
+
+    &copy; 2025 by [ST John](https://github.com/st--)
+    """
+    )
     return
 
 
@@ -29,7 +35,7 @@ def _():
     import scipy.stats as stats
     import seaborn as snb
     snb.set(font_scale=1.5)
-    return np, plt, snb, stats
+    return np, plt, stats
 
 
 @app.cell(hide_code=True)
@@ -42,28 +48,28 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-        Linear regression is perhaps the most frequently used technique in applied statistics for modelling the relationship between set of a covariates $\left\lbrace \mathbf{x}_n \right\rbrace_{n=1}^N$ and a response variable $\left\lbrace y_n \right\rbrace_{n=1}^N$. More formally, let $\mathbf{X} \in \mathbb{R}^{N \times D}$ be a design matrix and let  $\mathbf{y} \in \mathbb{R}^N$ be the response variables collected into a single vector, then the linear regression model is given by
+    Linear regression is perhaps the most frequently used technique in applied statistics for modelling the relationship between set of a covariates $\left\lbrace \mathbf{x}_n \right\rbrace_{n=1}^N$ and a response variable $\left\lbrace y_n \right\rbrace_{n=1}^N$. More formally, let $\mathbf{X} \in \mathbb{R}^{N \times D}$ be a design matrix and let  $\mathbf{y} \in \mathbb{R}^N$ be the response variables collected into a single vector, then the linear regression model is given by
 
-        \begin{align}
-        \mathbf{y} = \mathbf{X}\mathbf{w} + \mathbf{e},
-        \end{align}
+    \begin{align}
+    \mathbf{y} = \mathbf{X}\mathbf{w} + \mathbf{e},
+    \end{align}
 
-        where $\mathbf{w} \in \mathbb{R}^D$ is the regression weights and $\mathbf{e} \in \mathbb{R}^N$ is the observation noise vector.
+    where $\mathbf{w} \in \mathbb{R}^D$ is the regression weights and $\mathbf{e} \in \mathbb{R}^N$ is the observation noise vector.
 
-        Assuming isotropic Gaussian noise and imposing a multivariate Gaussian prior on $\mathbf{w} \sim \mathrm{N}\left(\mathbf{m}, \mathbf{S}\right)$ gives rise to the following joint distribution
+    Assuming isotropic Gaussian noise and imposing a multivariate Gaussian prior on $\mathbf{w} \sim \mathrm{N}\left(\mathbf{m}, \mathbf{S}\right)$ gives rise to the following joint distribution
 
-        \begin{align}
-        p(\mathbf{y}, \mathbf{w}) = p\left(\mathbf{y}|\mathbf{w}\right)p\left(\mathbf{w}\right) = \mathrm{N}\left(\mathbf{y}\big|\mathbf{Xw}, \sigma^2\mathbf{I}\right)\mathrm{N}\left(\mathbf{w}\big|\mathbf{m}, \mathbf{S}\right).
-        \end{align}
+    \begin{align}
+    p(\mathbf{y}, \mathbf{w}) = p\left(\mathbf{y}|\mathbf{w}\right)p\left(\mathbf{w}\right) = \mathrm{N}\left(\mathbf{y}\big|\mathbf{Xw}, \sigma^2\mathbf{I}\right)\mathrm{N}\left(\mathbf{w}\big|\mathbf{m}, \mathbf{S}\right).
+    \end{align}
 
-        To start, we will use the following simple model as running example:
+    To start, we will use the following simple model as running example:
 
-        \begin{align}
-        y_n = ax_n + b +  e_n = \underbrace{\begin{bmatrix}x_n&1\end{bmatrix}}_{\text{design matrix }\mathbf{X}} \begin{bmatrix}a\\b\end{bmatrix} + e_n.
-        \end{align}
+    \begin{align}
+    y_n = ax_n + b +  e_n = \underbrace{\begin{bmatrix}x_n&1\end{bmatrix}}_{\text{design matrix }\mathbf{X}} \begin{bmatrix}a\\b\end{bmatrix} + e_n.
+    \end{align}
 
-        That is, the parameters are $\mathbf{w} = \left[a, b\right]$, where $a$ and $b$ are the slope and intercept of the line, respectively.
-        """
+    That is, the parameters are $\mathbf{w} = \left[a, b\right]$, where $a$ and $b$ are the slope and intercept of the line, respectively.
+    """
     )
     return
 
@@ -76,7 +82,7 @@ def _(np):
     return (design_matrix_linreg,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""### Data set""")
     return
@@ -104,17 +110,17 @@ def _(np, plt):
         return fig
 
     _()
-    return example_x, example_y, n_example, true_a, true_b, true_sigma
+    return example_x, example_y, true_sigma
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        ### Prior distribution
+    ### Prior distribution
 
-        Because $f(\mathbf{x}) = \mathbf{x}^T \mathbf{w}$, The distribution $p(\mathbf{w})$ over parameters implies a distribution $p(f)$ over functions:
-        """
+    Because $f(\mathbf{x}) = \mathbf{x}^T \mathbf{w}$, The distribution $p(\mathbf{w})$ over parameters implies a distribution $p(f)$ over functions:
+    """
     )
     return
 
@@ -130,7 +136,7 @@ def _(np, stats, true_sigma):
 
     # the parameter of the likelihood:
     noise_var = true_sigma**2
-    return dim, noise_var, prior_cov, prior_dist, prior_mean, prior_scale
+    return noise_var, prior_dist
 
 
 @app.cell
@@ -209,7 +215,7 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""### Posterior distribution""")
     return
@@ -219,22 +225,22 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-        We want to compute the posterior
+    We want to compute the posterior
 
-        $$
-        p(\mathbf{w} | \mathbf{y}) = \frac{p(\mathbf{y}|\mathbf{w}) p(\mathbf{w})}{p(\mathbf{y})}
-        $$
+    $$
+    p(\mathbf{w} | \mathbf{y}) = \frac{p(\mathbf{y}|\mathbf{w}) p(\mathbf{w})}{p(\mathbf{y})}
+    $$
 
-        The prior is
-        $\mathrm{N}\left(\mathbf{w}\big|\mathbf{m}, \mathbf{S}\right)$.
+    The prior is
+    $\mathrm{N}\left(\mathbf{w}\big|\mathbf{m}, \mathbf{S}\right)$.
 
-        The likelihood is
-        $\mathrm{N}\left(\mathbf{y}\big|\mathbf{Xw}, \sigma^2\mathbf{I}\right)$.
+    The likelihood is
+    $\mathrm{N}\left(\mathbf{y}\big|\mathbf{Xw}, \sigma^2\mathbf{I}\right)$.
 
-        With respect to the parameters $\mathbf{w}$, the marginal likelihood (aka 'evidence') $p(\mathbf{y})$ is a constant that normalizes the probability distribution.
+    With respect to the parameters $\mathbf{w}$, the marginal likelihood (aka 'evidence') $p(\mathbf{y})$ is a constant that normalizes the probability distribution.
 
-        How can we find the posterior distribution?
-        """
+    How can we find the posterior distribution?
+    """
     )
     return
 
@@ -254,7 +260,7 @@ def _(design_matrix_linreg, example_x, example_y, ui_n_data):
     X = design_matrix_linreg(x)
 
     ui_n_data  # how many data points to use
-    return X, n_data, x, y
+    return X, x, y
 
 
 @app.cell
@@ -280,7 +286,7 @@ def _(X, noise_var, np, stats, y):
     return compute_likelihood, compute_loglikelihood
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""As a very crude way of approximating the posterior, we can use simple rejection sampling:""")
     return
@@ -351,31 +357,24 @@ def _(
         return fig
 
     _()
-    return (
-        f_samples_posterior,
-        f_samples_prior,
-        filter_posterior,
-        param_samples_posterior,
-        param_samples_prior,
-        x_grid,
-    )
+    return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        For a Gaussian prior and Gaussian likelihood, the posterior is also a Gaussian distribution.
+    For a Gaussian prior and Gaussian likelihood, the posterior is also a Gaussian distribution.
 
-        We want to find the parameters of the posterior $p(\mathbf{w}\big|\mathbf{y}) = \mathrm{N}\left(\mathbf{w}\big|\mu, \Sigma\right)$.
+    We want to find the parameters of the posterior $p(\mathbf{w}\big|\mathbf{y}) = \mathrm{N}\left(\mathbf{w}\big|\mu, \Sigma\right)$.
 
-        This can be computed analytically:
+    This can be computed analytically:
 
-        \begin{align}
-        \Sigma &= \left(\frac{1}{\sigma^2}\mathbf{X}^T\mathbf{X} + \mathbf{S}^{-1}\right)^{-1}\\
-        \mu &= \Sigma\left(\frac{1}{\sigma^2}\mathbf{X}^T\mathbf{y} + \mathbf{S}^{-1}\mathbf{m}\right)
-        \end{align}
-        """
+    \begin{align}
+    \Sigma &= \left(\frac{1}{\sigma^2}\mathbf{X}^T\mathbf{X} + \mathbf{S}^{-1}\right)^{-1}\\
+    \mu &= \Sigma\left(\frac{1}{\sigma^2}\mathbf{X}^T\mathbf{y} + \mathbf{S}^{-1}\mathbf{m}\right)
+    \end{align}
+    """
     )
     return
 
@@ -564,14 +563,14 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        # Extending the features
+    # Extending the features
 
-        What if our data is nonlinear, as in the following?
-        """
+    What if our data is nonlinear, as in the following?
+    """
     )
     return
 
@@ -589,14 +588,14 @@ def _(nlX, nlY, plt):
     return (plot_nonlin_data,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        We can make our design matrix richer by defining more features!
+    We can make our design matrix richer by defining more features!
 
-        Let's revisit the 1D linear regression discussed so far:
-        """
+    Let's revisit the 1D linear regression discussed so far:
+    """
     )
     return
 
@@ -729,13 +728,13 @@ def _(design_matrix_polyreg, nlX, nlY, plot_nonlin_data, plot_regression, plt):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""You can see what happens if you add more columns corresponding to higher orders into `design_matrix_polyreg`.""")
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""Alternatively, instead of "global" features such as $x$, $x^2$, etc., we can define *local* features as below:""")
     return
@@ -760,7 +759,7 @@ def _(np, plt, xp_fine):
     plt.xlim(-3,3)
     plt.plot(xp_fine, design_matrix_rbf(xp_fine));
     plt.gcf()
-    return Nbasis, design_matrix_rbf, gaussian, rbf_w
+    return design_matrix_rbf, gaussian, rbf_w
 
 
 @app.cell
@@ -777,7 +776,7 @@ def _(design_matrix_rbf, nlX, nlY, plot_nonlin_data, plot_regression):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""We can make the design matrix richer by adding more basis functions, and extending how far they spread:""")
     return
@@ -812,19 +811,19 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        What if we could have an **infinite** number of basis functions???
+    What if we could have an **infinite** number of basis functions???
 
-        We can do this by putting a distribution on the function values directly: $p(\mathbf{f})$ ...
-        """
+    We can do this by putting a distribution on the function values directly: $p(\mathbf{f})$ ...
+    """
     )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(np):
     nlX = np.array([
        5.7007757e+00, 1.3868311e+00, 3.6410555e+00, 2.9158948e+00, 5.3477938e+00, 4.5725810e+00, 2.7388060e+00, 1.1102186e-01,
@@ -882,7 +881,7 @@ def _(np):
     ])
     tX = nlX[::4]
     tY = nlY[::4]
-    return nlX, nlY, tX, tY
+    return nlX, nlY
 
 
 @app.cell

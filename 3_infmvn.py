@@ -10,8 +10,29 @@
 
 import marimo
 
-__generated_with = "0.12.5"
+__generated_with = "0.13.15"
 app = marimo.App(width="medium")
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    # _var = "x"
+    # _var = r"\star"
+    _var = "f"
+
+    mo.md(
+        r"""
+        # Extending multivariate normal distribution to infinitely many function values
+
+        &copy; 2025 by [ST John](https://github.com/st--)
+
+
+        $$ \mathrm{N}(VAR | \boldsymbol{\mu}, \boldsymbol{\Sigma}) $$
+
+        $$\mathbb{E}[VAR] = \boldsymbol{\mu} \qquad \operatorname{cov}[VAR] = \boldsymbol{\Sigma}$$
+        """.replace("VAR", r"{\color{red}\mathbf{VAR}}").replace("VAR", _var)
+    )
+    return
 
 
 @app.cell
@@ -26,24 +47,6 @@ def _():
     import matplotlib.pyplot as plt
     from scipy import stats
     return np, plt, stats
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    # _var = "x"
-    # _var = r"\star"
-    _var = "f"
-
-    mo.md(
-        r"""
-        # Multivariate Gaussian distribution
-
-        $$ \mathrm{N}(VAR | \boldsymbol{\mu}, \boldsymbol{\Sigma}) $$
-
-        $$\mathbb{E}[VAR] = \boldsymbol{\mu} \qquad \operatorname{cov}[VAR] = \boldsymbol{\Sigma}$$
-        """.replace("VAR", r"{\color{red}\mathbf{VAR}}").replace("VAR", _var)
-    )
-    return
 
 
 @app.cell
@@ -87,7 +90,7 @@ def _(np, plt, stats):
         return fig
 
     _()
-    return prep_figure, prior_dist, prior_std, x1, x2, ylims
+    return prep_figure, prior_std, x1, x2, ylims
 
 
 @app.cell
@@ -128,7 +131,7 @@ def _(np, prep_figure, prior_std, stats, x1, x2, ylims):
         return fig
 
     _()
-    return conditional_dist, noise_std, yobs
+    return
 
 
 @app.cell(hide_code=True)
@@ -145,7 +148,7 @@ def _(np):
     def gaussian(x, x2=None, ell=0.5):
         if x2 is None: x2 = x
         return np.exp(- (x[:, None] - x2[None, :])**2 / (2*ell**2))
-    return gaussian, itertools
+    return (gaussian,)
 
 
 @app.cell
@@ -160,7 +163,7 @@ def _(np):
 
     idx = idx_base[perm]
     xs = x_fine[idx]
-    return idx, idx_base, perm, perm1, perm2, x_fine, xs
+    return idx, perm, x_fine, xs
 
 
 @app.cell
@@ -176,7 +179,7 @@ def _(gaussian, idx, np, x_fine, xs):
     Kxx = gaussian(xs)
     Lx = np.linalg.cholesky(Kxx)
     f = Lx @ np.random.randn(len(idx), 10)
-    return K0, Kxx, L0, Lx, f, f0, num_points, num_samples
+    return K0, Kxx, f0
 
 
 @app.cell
@@ -188,7 +191,7 @@ def _():
         index = enum.auto()
         variable = enum.auto()
         value = enum.auto()
-    return WhatTicks, enum
+    return (WhatTicks,)
 
 
 @app.cell
@@ -230,7 +233,7 @@ def _(Kxx, WhatTicks, draw_prep, idx, mo, np, perm, plt, what_ticks_ui, xs):
         return fig
 
     mo.vstack([what_ticks_ui, mo.hstack([draw1()])])
-    return (draw1,)
+    return
 
 
 @app.cell
@@ -287,7 +290,7 @@ def _(K0, draw_prep, idx, np, plt, x_fine):
         return fig
 
     [draw2(case) for case in range(4, 8)]
-    return (draw2,)
+    return
 
 
 @app.cell

@@ -17,8 +17,27 @@
 
 import marimo
 
-__generated_with = "0.12.5"
+__generated_with = "0.13.15"
 app = marimo.App(width="medium")
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    # Gaussian processes
+
+    &copy; 2025 by [ST John](https://github.com/st--)
+
+
+    # Covariance functions and Gaussian process prior
+
+    The **covariance function** (also commonly referred to as **kernel function**) $k(x, x')$ defines the core characteristics of a Gaussian process, e.g. differentiability, periodicitiy...
+
+    To be a valid covariance function, $k(x, x')$ has to be "positive definite", i.e. for any set of input points $\{x_i\}_{i=1}^N$, the matrix defined by $[\mathbf{K}]_{ij} = k(x_i, x_j)$ has to be a positive-definite matrix (symmetric and all eigenvalues $> 0$).
+    """
+    )
+    return
 
 
 @app.cell
@@ -33,20 +52,6 @@ def _():
     import scipy.stats as stats
     import matplotlib.pyplot as plt
     return np, plt, stats
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    # Covariance functions and Gaussian process prior
-
-    The **covariance function** (also commonly referred to as **kernel function**) $k(x, x')$ defines the core characteristics of a Gaussian process, e.g. differentiability, periodicitiy...
-
-    To be a valid covariance function, $k(x, x')$ has to be "positive definite", i.e. for any set of input points $\{x_i\}_{i=1}^N$, the matrix defined by $[\mathbf{K}]_{ij} = k(x_i, x_j)$ has to be a positive-definite matrix (symmetric and all eigenvalues $> 0$).
-    """
-    )
-    return
 
 
 @app.cell
@@ -81,13 +86,11 @@ def _(np):
         linear_kernel,
         matern12,
         periodic_kernel,
-        polynomial_kernel,
-        product_of_gaussian_and_linear_kernel,
         sum_of_periodic_and_linear_kernel,
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""## Gaussian process prior samples""")
     return
@@ -142,7 +145,7 @@ def _(np, plt, stats):
 
         plt.tight_layout()
         return fig
-    return plot_samples, sample_gp
+    return (plot_samples,)
 
 
 @app.cell
@@ -165,9 +168,9 @@ def _(
 def _(mo):
     mo.md(
         r"""
-        ## Kernel hyperparameters
-        Kernels commonly have **hyperparameters** that change their properties. For example, the Gaussian kernel has a `lengthscale` hyperparameter that controls the distance over which function values remain correlated with each other:
-        """
+    ## Kernel hyperparameters
+    Kernels commonly have **hyperparameters** that change their properties. For example, the Gaussian kernel has a `lengthscale` hyperparameter that controls the distance over which function values remain correlated with each other:
+    """
     )
     return
 
@@ -200,10 +203,10 @@ def _(gaussian_kernel, plot_samples):
 def _(mo):
     mo.md(
         r"""
-        # Gaussian process posterior
+    # Gaussian process posterior
 
-        Now that we've got some feeling for the *prior*, let's see how conditioning on the observed data points gives us the posterior.
-        """
+    Now that we've got some feeling for the *prior*, let's see how conditioning on the observed data points gives us the posterior.
+    """
     )
     return
 
@@ -212,10 +215,10 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-        ## Data
+    ## Data
 
-        First, let's pick some data.
-        """
+    First, let's pick some data.
+    """
     )
     return
 
@@ -223,7 +226,7 @@ def _(mo):
 @app.cell
 def _():
     use_preset_data = True  # just use a predefined set of data
-    # use_preset_data = False  # draw your own data!
+    # use_preset_data = False  # 🔧 uncomment this to draw your own data!
     return (use_preset_data,)
 
 
@@ -285,7 +288,7 @@ def preset_non_linear_data(np):
     ])
     tX = nlX[::4]
     tY = nlY[::4]
-    return nlX, nlY, tX, tY
+    return nlX, nlY
 
 
 @app.cell(hide_code=True)
@@ -313,7 +316,7 @@ def draw_data_widget(mo, use_preset_data):
         mo.hstack([run_button]),
         datawidget,
     ]) if not use_preset_data else None
-    return ScatterWidget, datawidget, run_button
+    return datawidget, run_button
 
 
 @app.cell(hide_code=True)
@@ -351,7 +354,7 @@ def draw_data_extractor(datawidget, mo, np, run_button, use_preset_data):
             click the 'Process data' button to execute the drawdata-dependent code
             """)
         )
-    return extract_X_y, has_data, raw_X, raw_y, warn_no_data
+    return raw_X, raw_y
 
 
 @app.cell
@@ -396,17 +399,17 @@ def data_setup(nlX, nlY, plt, raw_X, raw_y, use_preset_data):
         return fig
 
     plot_data()
-    return X, n_data, normalize_data, plot_data, x_lims, y, y_lims, z_normalize
+    return X, plot_data, x_lims, y
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        ## Posterior computation
+    ## Posterior computation
 
-        Similar to how conditioning a multivariate normal distribution results in another (smaller) multivariate normal distribution, conditioning a Gaussian process on some observations results in another Gaussian process. The key difference is that instead of blocks of a finite-size covariance matrix, we now evaluate the covariance function on the input points corresponding to conditioning set (training data) and evaluation set (test points).
-        """
+    Similar to how conditioning a multivariate normal distribution results in another (smaller) multivariate normal distribution, conditioning a Gaussian process on some observations results in another Gaussian process. The key difference is that instead of blocks of a finite-size covariance matrix, we now evaluate the covariance function on the input points corresponding to conditioning set (training data) and evaluation set (test points).
+    """
     )
     return
 
@@ -456,14 +459,14 @@ def _(X, gaussian_kernel, gp_posterior, np, plot_data, plt, x_lims, y):
     return (plot_posterior,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        # Hyperparameter selection and marginal likelihood
+    # Hyperparameter selection and marginal likelihood
 
-        To look at how to choose hyperparameter values, we will consider a very small toy dataset. Which of the following two posteriors is better?
-        """
+    To look at how to choose hyperparameter values, we will consider a very small toy dataset. Which of the following two posteriors is better?
+    """
     )
     return
 
@@ -495,20 +498,20 @@ def _(gaussian_kernel, mo, np, plot_posterior, plt):
         plot_toy_posterior(gaussian_kernel, noise_std=1, lengthscale=1),  # longer lengthscale, higher noise
         plot_toy_posterior(gaussian_kernel, noise_std=0.1, lengthscale=0.4),  # shorter lengthscale, lower noise
     ])
-    return plot_toy_data, plot_toy_posterior, x_test, x_train, y_train
+    return plot_toy_posterior, x_train, y_train
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
-        How can we pick between them?
+    How can we pick between them?
 
-        - expert/domain knowledge
-        - cross-validation
-        - put prior distribution on hyperparameters (-> MCMC)
-        - **optimize marginal likelihood**
-        """
+    - expert/domain knowledge
+    - cross-validation
+    - put prior distribution on hyperparameters (-> MCMC)
+    - **optimize marginal likelihood**
+    """
     )
     return
 
@@ -576,10 +579,10 @@ def _(get_lml_L_N_Z, np, plt):
 def _(mo):
     mo.md(
         r"""
-        ## Numerical optimization of marginal likelihood
+    ## Numerical optimization of marginal likelihood
 
-        In practice, we would not evaluate the marginal likelihood on a grid, but instead use numeric optimization to find a good point estimate. Let's try that out:
-        """
+    In practice, we would not evaluate the marginal likelihood on a grid, but instead use numeric optimization to find a good point estimate. Let's try that out:
+    """
     )
     return
 
@@ -598,7 +601,7 @@ def _(mo, np):
         mo.md("""We have to start optimizing from some initial choice of hyperparameters:"""),
         ui_init_all
     ])
-    return mylogspace, ui_init_all, ui_init_l, ui_init_n, ui_init_v
+    return ui_init_all, ui_init_l, ui_init_n, ui_init_v
 
 
 @app.cell
@@ -667,20 +670,11 @@ def _(
     print("Optimized noise variance:", opt_noisestd)
     print("Final negative log marginal likelihood:", res.fun)
     return (
-        callback,
-        initial_log_params,
-        initial_params,
-        minimize,
-        neg_log_marginal_likelihood,
         opt_lengthscale,
         opt_noisestd,
-        opt_trajectory,
         opt_trajectory_lengthscale,
         opt_trajectory_noisestd,
-        opt_trajectory_variance,
         opt_variance,
-        res,
-        trajectory_log,
     )
 
 
@@ -735,10 +729,10 @@ def _(
 def _(mo):
     mo.md(
         r"""
-        # Fitting Gaussian processes with GPJax
+    # Fitting Gaussian processes with GPJax
 
-        In practice, you might not want to implement all the GP equations by hand. Packages such as GPJax make it easy to define a GP prior and optimize the hyperparameters using gradients, not just finite difference as we did above.
-        """
+    In practice, you might not want to implement all the GP equations by hand. Packages such as GPJax make it easy to define a GP prior and optimize the hyperparameters using gradients, not just finite difference as we did above.
+    """
     )
     return
 
@@ -784,7 +778,7 @@ def _(gpx):
     kernel = gpx.kernels.RBF()  #
     meanf = gpx.mean_functions.Zero()
     prior = gpx.gps.Prior(mean_function=meanf, kernel=kernel)
-    return kernel, meanf, prior
+    return (prior,)
 
 
 @app.cell
@@ -818,7 +812,7 @@ def _(jnp, key, plt, prior, xtest):
         return fig
 
     _()
-    return plot_gpjax_mean_confidence, plot_gpjax_samples, prior_dist
+    return (plot_gpjax_mean_confidence,)
 
 
 @app.cell
@@ -826,7 +820,7 @@ def _(D, gpx, prior):
     likelihood = gpx.likelihoods.Gaussian(num_datapoints=D.n)
 
     posterior = prior * likelihood
-    return likelihood, posterior
+    return (posterior,)
 
 
 @app.cell
@@ -869,7 +863,7 @@ def _(D, gpx, posterior):
         objective=lambda p, d: -gpx.objectives.conjugate_mll(p, d),
         train_data=D,
     )
-    return history, opt_posterior
+    return (opt_posterior,)
 
 
 @app.cell
@@ -914,7 +908,7 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""# Deep ensembles""")
     return
@@ -926,7 +920,6 @@ def _():
     # import jax.numpy as jnp
     import optax
     from flax import nnx
-    # import matplotlib.pyplot as plt
     return nnx, optax
 
 
@@ -984,7 +977,7 @@ def _(X, jax, nnx, np, optax, plt, y):
 
     ensemble_models, _fig = create_ensemble(key=jax.random.PRNGKey(0))
     plt.show()
-    return MLP, create_ensemble, ensemble_models, train_model
+    return (ensemble_models,)
 
 
 @app.cell
@@ -1019,11 +1012,6 @@ def _(X, ensemble_models, jnp, plt, y):
         plt.show()
 
     _()
-    return
-
-
-@app.cell
-def _():
     return
 
 
